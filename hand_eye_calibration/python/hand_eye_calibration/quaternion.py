@@ -294,14 +294,6 @@ def angle_between_quaternions(q1, q2):
 def angular_velocity_between_quaternions(q1, q2, t):
   """ Returns the angular velocity resulting from transitioning from q1 to q2
   in t. """
-  # print("q1:\n{}".format(q1))
-  # print("q2:\n{}".format(q2))
-  # print("t: {}".format(t))
-  # # Ensure positive w.
-  # if q1.w < 0.:
-  #   q1 = -q1
-  # if q2.w < 0.:
-  #   q2 = -q2
   q1_q2_inv = q1 * q2.inverse()
   # Ensure positive w.
   if q1_q2_inv.w < 0.:
