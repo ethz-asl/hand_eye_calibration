@@ -16,4 +16,5 @@ cs_export()
 ## Add folders to be run by python nosetests
 catkin_add_nosetests(test/test_quaternion.py)
 catkin_add_nosetests(test/test_dual_quaternion.py)
-
+catkin_add_nosetests(test/test_time_alignment.py)
+catkin_add_nosetests(test/test_hand_eye_calibration.py)
