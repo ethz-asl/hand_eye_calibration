@@ -4,10 +4,15 @@ from hand_eye_calibration.time_alignment import (
     calculate_time_offset_from_signals)
 from hand_eye_calibration.quaternion import (
     Quaternion, quaternions_interpolate, angular_velocity_between_quaternions)
+from hand_eye_calibration.test_tools import (
+    introduce_data_drops, DataDropConfig)
 
 from scipy import signal
 import numpy as np
 import numpy.testing as npt
+import math
+from matplotlib import pylab as plt
+import copy
 
 
 class TimeAlignment(unittest.TestCase):
@@ -61,6 +66,62 @@ class TimeAlignment(unittest.TestCase):
     # TODO(ff): Read stamped poses from csv files.
     # Then call calculate_time_offset.
     pass
+
+  def test_introduce_data_drops(self):
+    test_size = 1000
+    test = [math.sin(float(x)) for x in np.linspace(0, 2 * math.pi, test_size)]
+
+    test_before = copy.deepcopy(test)
+
+    config = DataDropConfig()
+    config.max_percentage_for_single_drop = 5.0
+    config.overall_drop_percentage = 20.0
+
+    print("test size before dropping: {}".format(len(test)))
+    set_to_none = True
+    introduce_data_drops(test, config, set_to_none)
+    print("test size after dropping: {}".format(len(test)))
+
+    expected_test_size = float(test_size) - \
+        ((config.overall_drop_percentage / 100.0) * float(test_size))
+
+    print("expected_test_size: {}".format(expected_test_size))
+
+    # assert abs(len(test) - expected_test_size) < 1e-8
+    plt.subplot(2, 1, 1)
+    plt.plot(test_before)
+    plt.subplot(2, 1, 2)
+    plt.plot(test)
+    plt.show()
+
+    def test_introduce_data_drops_with_time_alignment(self):
+
+      angular_velocity1_norms_before = copy.deepcopy(angular_velocity1_norms)
+      angular_velocity2_norms_before = copy.deepcopy(angular_velocity2_norms)
+
+      time_offset = calculate_time_offset_from_signals(
+          self.t1s[0:-1], self.angular_velocity1_norms, self.t2s[0:-1],
+          self.angular_velocity2_norms, True)
+      print(time_offset)
+
+      config = DataDropConfig()
+      config.max_percentage_for_single_drop = 5.0
+      config.overall_drop_percentage = 20.0
+
+      set_to_none = False
+      introduce_data_drops(test, config, set_to_none)
+
+      expected_test_size = float(test_size) - \
+          ((config.overall_drop_percentage / 100.0) * float(test_size))
+
+      print("expected_test_size: {}".format(expected_test_size))
+
+      # assert abs(len(test) - expected_test_size) < 1e-8
+      plt.subplot(2, 1, 1)
+      plt.plot(test_before)
+      plt.subplot(2, 1, 2)
+      plt.plot(test)
+      plt.show()
 
 
 if __name__ == '__main__':
