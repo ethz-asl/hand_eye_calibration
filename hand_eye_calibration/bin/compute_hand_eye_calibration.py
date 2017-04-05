@@ -7,7 +7,7 @@ import numpy as np
 
 from hand_eye_calibration.dual_quaternion import DualQuaternion
 from hand_eye_calibration.dual_quaternion_hand_eye_calibration import (
-    align, draw_poses, make_paths_start_at_origin)
+    align, draw_poses, align_paths_at_index)
 
 # CONFIG
 paths_start_at_origin = True
@@ -77,8 +77,8 @@ if __name__ == "__main__":
   assert len(dual_quat_B_H_vec) == len(dual_quat_W_E_vec), "len(dual_quat_B_H_vec): {} vs len(dual_quat_W_E_vec): {}".format(
       len(dual_quat_B_H_vec), len(dual_quat_W_E_vec))
 
-  dual_quat_B_H_vec = make_paths_start_at_origin(dual_quat_B_H_vec)
-  dual_quat_W_E_vec = make_paths_start_at_origin(dual_quat_W_E_vec)
+  dual_quat_B_H_vec = align_paths_at_index(dual_quat_B_H_vec)
+  dual_quat_W_E_vec = align_paths_at_index(dual_quat_W_E_vec)
 
   # Draw both paths in their Global/World frame.
   poses1 = np.array([dual_quat_B_H_vec[0].to_pose().T])

@@ -66,17 +66,17 @@ def compute_dual_quaternions_with_offset(dq_B_H_vec, dq_H_E, dq_B_W):
   return dq_W_E_vec
 
 
-def make_paths_start_at_origin(dq_vec, enforce_positive_q_rot_w=True):
-  dq_init_inverse = dq_vec[0].inverse().copy()
+def align_paths_at_index(dq_vec, align_index=0, enforce_positive_q_rot_w=True):
+  dq_align_inverse = dq_vec[align_index].inverse().copy()
   n_samples = len(dq_vec)
   dq_vec_starting_at_origin = [None] * n_samples
   for i in range(0, n_samples):
-    dq_vec_starting_at_origin[i] = dq_init_inverse * dq_vec[i].copy()
+    dq_vec_starting_at_origin[i] = dq_align_inverse * dq_vec[i].copy()
     if (enforce_positive_q_rot_w):
       if dq_vec_starting_at_origin[i].q_rot.w < 0.:
         dq_vec_starting_at_origin[i].dq = -(
             dq_vec_starting_at_origin[i].dq.copy())
-  assert np.allclose(dq_vec_starting_at_origin[0].dq,
+  assert np.allclose(dq_vec_starting_at_origin[align_index].dq,
                      [0., 0., 0., 1.0, 0., 0., 0., 0.],
                      atol=1.e-8), dq_vec_starting_at_origin[0]
   return dq_vec_starting_at_origin
@@ -99,6 +99,7 @@ def setup_s_matrix(dq_1, dq_2):
   """
   scalar_parts_1 = dq_1.scalar()
   scalar_parts_2 = dq_2.scalar()
+
   assert np.allclose(
       scalar_parts_1.dq, scalar_parts_2.dq,
       atol=5e-2), (
@@ -141,11 +142,11 @@ def setup_t_matrix(dq_W_E_vec, dq_H_B_vec):
   return t_matrix.copy()
 
 
-def align(dq_W_E_vec, dq_H_B_vec, enforce_same_non_dual_scalar_sign=True):
+def align(dq_W_E_vec, dq_H_B_vec, enforce_same_non_dual_scalar_sign=True, min_num_inliers=2):
   """Do the actual hand eye-calibration as described in the referenced paper."""
+  n_quaternions = len(dq_W_E_vec)
 
-  if(enforce_same_non_dual_scalar_sign):
-    n_quaternions = len(dq_W_E_vec)
+  if enforce_same_non_dual_scalar_sign:
     for i in range(n_quaternions):
       dq_W_E = dq_W_E_vec[i]
       dq_H_B = dq_H_B_vec[i]
@@ -153,9 +154,46 @@ def align(dq_W_E_vec, dq_H_B_vec, enforce_same_non_dual_scalar_sign=True):
               (dq_W_E.q_rot.w > 0. and dq_H_B.q_rot.w < 0.)):
         dq_W_E_vec[i].dq = -dq_W_E_vec[i].dq.copy()
 
+  # 0. Reject pairs where scalar parts of dual quaternions do not match.
+  # Find two indices to align the the two sets of poses.
+  found_first_two_inliers = False
+  # Loop over all the indices to find an index of a pose pair.
+  for j in range(n_quaternions):
+    # Re-align all dual quaternion to the j-th dual quaternion.
+    dq_W_E_vec = align_paths_at_index(dq_W_E_vec, j)
+    dq_H_B_vec = align_paths_at_index(dq_H_B_vec, j)
+
+    dq_W_E_vec_filtered = []
+    dq_H_B_vec_filtered = []
+    # Loop over the indices again starting at the first index to find at
+    # least one second pair of poses until we find two poses that describe a
+    # screw motion.
+    for i in range(j, n_quaternions):
+      dq_W_E = dq_W_E_vec[i]
+      dq_H_B = dq_H_B_vec[i]
+      scalar_parts_W_E = dq_W_E.scalar()
+      scalar_parts_H_B = dq_H_B.scalar()
+      # Append the inliers to the filtered dual quaternion vectors.
+      if np.allclose(scalar_parts_W_E.dq, scalar_parts_H_B.dq, atol=1e-4):
+        dq_W_E_vec_filtered.append(dq_W_E)
+        dq_H_B_vec_filtered.append(dq_H_B)
+
+    # Break if we found at least two inliers.
+    assert len(dq_W_E_vec_filtered) == len(dq_H_B_vec_filtered)
+    has_enough_inliers = (len(dq_W_E_vec_filtered) > min_num_inliers)
+    if has_enough_inliers:
+      break
+
+    if j + 1 >= n_quaternions:
+      assert False, "Not enough inliers found."
+
+  print("Removed {} outliers from the initial set of poses.".format(
+      len(dq_W_E_vec) - len(dq_W_E_vec_filtered)))
+  print("Running the hand-eye calibration with the remaining {} pairs of "
+        "poses".format(len(dq_W_E_vec_filtered)))
   # 1.
   # Construct 6n x 8 matrix T
-  t_matrix = setup_t_matrix(dq_W_E_vec, dq_H_B_vec)
+  t_matrix = setup_t_matrix(dq_W_E_vec_filtered, dq_H_B_vec_filtered)
 
   # 2.
   # Compute SVD of T and check if only two singular values are almost equal to
