@@ -142,7 +142,7 @@ def setup_t_matrix(dq_W_E_vec, dq_H_B_vec):
   return t_matrix.copy()
 
 
-def align(dq_W_E_vec, dq_H_B_vec, enforce_same_non_dual_scalar_sign=True):
+def align(dq_W_E_vec, dq_H_B_vec, enforce_same_non_dual_scalar_sign=True, min_num_inliers=2):
   """Do the actual hand eye-calibration as described in the referenced paper."""
   n_quaternions = len(dq_W_E_vec)
 
@@ -155,33 +155,37 @@ def align(dq_W_E_vec, dq_H_B_vec, enforce_same_non_dual_scalar_sign=True):
         dq_W_E_vec[i].dq = -dq_W_E_vec[i].dq.copy()
 
   # 0. Reject pairs where scalar parts of dual quaternions do not match.
-  # Find two indicices to align the the two sets of poses.
+  # Find two indices to align the the two sets of poses.
   found_first_two_inliers = False
+  # Loop over all the indices to find an index of a pose pair.
   for j in range(n_quaternions):
+    # Re-align all dual quaternion to the j-th dual quaternion.
+    dq_W_E_vec = align_paths_at_index(dq_W_E_vec, j)
+    dq_H_B_vec = align_paths_at_index(dq_H_B_vec, j)
+
     dq_W_E_vec_filtered = []
     dq_H_B_vec_filtered = []
+    # Loop over the indices again starting at the first index to find at
+    # least one second pair of poses until we find two poses that describe a
+    # screw motion.
     for i in range(j, n_quaternions):
       dq_W_E = dq_W_E_vec[i]
       dq_H_B = dq_H_B_vec[i]
       scalar_parts_W_E = dq_W_E.scalar()
       scalar_parts_H_B = dq_H_B.scalar()
-
+      # Append the inliers to the filtered dual quaternion vectors.
       if np.allclose(scalar_parts_W_E.dq, scalar_parts_H_B.dq, atol=1e-4):
         dq_W_E_vec_filtered.append(dq_W_E)
         dq_H_B_vec_filtered.append(dq_H_B)
-        if j != i:
-          found_first_two_inliers = True
+
     # Break if we found at least two inliers.
-    if found_first_two_inliers:
+    assert len(dq_W_E_vec_filtered) == len(dq_H_B_vec_filtered)
+    has_enough_inliers = (len(dq_W_E_vec_filtered) > min_num_inliers)
+    if has_enough_inliers:
       break
 
     if j + 1 >= n_quaternions:
-      print("No two inliers found.")
-      break
-    # Realign until the first dual quaternion until we have at least two pairs
-    # that are not outliers.
-    dq_W_E_vec = align_paths_at_index(dq_W_E_vec, j + 1)
-    dq_H_B_vec = align_paths_at_index(dq_H_B_vec, j + 1)
+      assert False, "Not enough inliers found."
 
   print("Removed {} outliers from the initial set of poses.".format(
       len(dq_W_E_vec) - len(dq_W_E_vec_filtered)))
