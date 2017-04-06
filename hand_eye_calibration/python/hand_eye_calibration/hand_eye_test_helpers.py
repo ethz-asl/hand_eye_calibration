@@ -76,9 +76,9 @@ def generate_test_path(n_samples, include_outliers=False,
   # curve.
   dual_quaternions = []
   t = np.linspace(0, 1, num=n_samples)
-  x = np.cos(4 * np.pi * t)
-  y = -np.sin(4 * np.pi * t)
-  z = t * 5
+  x = 10.0 + np.cos(4 * np.pi * t)
+  y = -5.0 + -np.sin(4 * np.pi * t) * 4
+  z = 0.5 + t * 5
   theta = 4 * np.pi * t
   outliers = []
   for i in range(n_samples):
