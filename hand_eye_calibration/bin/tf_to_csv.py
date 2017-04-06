@@ -14,7 +14,7 @@ import warnings
 
 
 def write_transformation_to_csv_file(bag_file, target_frame, source_frame,
-                                     csv_file_name):
+                                     csv_file_name, output_position_in_source_frame=False):
   print("Loading tfs into Transformer...")
   tf_tree = tf.Transformer(True, rospy.Duration(3600.0))
   bag = rosbag.Bag(bag_file)
@@ -45,9 +45,10 @@ def write_transformation_to_csv_file(bag_file, target_frame, source_frame,
             (translation,
              hamilton_quaternion) = tf_tree.lookupTransform(target_frame, source_frame,
                                                             single_tf.header.stamp)
-            # print(translation)
-            rot_mat = tf.transformations.quaternion_matrix(hamilton_quaternion)[:3, :3]
-            translation = np.matmul(rot_mat.T, translation)
+
+            if output_position_in_source_frame:
+              rot_mat = tf.transformations.quaternion_matrix(hamilton_quaternion)[:3, :3]
+              translation = np.matmul(rot_mat.T, translation)
           except (tf.LookupException, tf.ConnectivityException,
                   tf.ExtrapolationException):
             # Only start counting if we already did at least one successful tf
@@ -119,6 +120,11 @@ if __name__ == '__main__':
       '--tf_target_frame', required=True, help='Name of tf target frame.')
   parser.add_argument(
       '--csv_output_file', required=True, help='Path to output csv file')
+  parser.add_argument(
+      '--output_position_in_source_frame', default=True,
+      help='If enabled, the [x, y, z] position vector of the 3D pose will '
+      'be rotated, such that it represents the 3D position of the target '
+      'frame origin in the source frame coordinate system.')
 
   args = parser.parse_args()
 
@@ -126,4 +132,5 @@ if __name__ == '__main__':
 
   write_transformation_to_csv_file(args.bag, args.tf_target_frame,
                                    args.tf_source_frame,
-                                   args.csv_output_file)
+                                   args.csv_output_file,
+                                   args.output_position_in_source_frame)

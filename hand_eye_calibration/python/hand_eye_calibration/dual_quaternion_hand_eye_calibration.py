@@ -174,9 +174,11 @@ def align(dq_W_E_vec, dq_B_H_vec, enforce_same_non_dual_scalar_sign=True, min_nu
 
     dq_W_E_vec_filtered = []
     dq_B_H_vec_filtered = []
-    # Loop over the indices again starting at the first index to find at
-    # least one second pair of poses until we find two poses that describe a
-    # screw motion.
+
+    # Loop over the indices again starting at the first index to find either:
+    # - The first set of inliers of at least size min_num_inliers
+    #       OR
+    # - The largest set of inliers using an exhaustive search
     for i in range(0, n_quaternions):
       dq_W_E = dq_W_E_vec[i]
       dq_B_H = dq_B_H_vec[i]
@@ -187,7 +189,6 @@ def align(dq_W_E_vec, dq_B_H_vec, enforce_same_non_dual_scalar_sign=True, min_nu
         dq_W_E_vec_filtered.append(dq_W_E)
         dq_B_H_vec_filtered.append(dq_B_H)
 
-    # Break if we found at least two inliers.
     assert len(dq_W_E_vec_filtered) == len(dq_B_H_vec_filtered)
 
     if exhaustive_search:
@@ -208,8 +209,7 @@ def align(dq_W_E_vec, dq_B_H_vec, enforce_same_non_dual_scalar_sign=True, min_nu
         assert False, "Not enough inliers found."
 
   if exhaustive_search:
-    if best_idx == -1:
-      assert False, "Not enough inliers found!"
+    assert best_idx != -1, "Not enough inliers found!"
     dq_W_E_vec_filtered = best_dq_W_E_vec_filtered
     dq_B_H_vec_filtered = best_dq_B_H_vec_filtered
 
