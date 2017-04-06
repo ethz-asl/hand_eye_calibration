@@ -3,6 +3,7 @@ import matplotlib.pyplot as plt
 from matplotlib.patches import FancyArrowPatch
 from mpl_toolkits.mplot3d import proj3d
 
+import copy
 import numpy as np
 import tf
 
@@ -122,7 +123,7 @@ def setup_s_matrix(dq_1, dq_2):
   return s_matrix.copy()
 
 
-def setup_t_matrix(dq_W_E_vec, dq_H_B_vec):
+def setup_t_matrix(dq_W_E_vec, dq_B_H_vec):
   """This sets up the [6nx8] T matrix consisting of multiple S matrices for the
   different pose pairs. See Equation (33) of the referenced paper.
 
@@ -131,7 +132,7 @@ def setup_t_matrix(dq_W_E_vec, dq_H_B_vec):
   n_quaternions = len(dq_W_E_vec)
   t_matrix = np.zeros([6 * n_quaternions, 8])
   for i in range(n_quaternions):
-    t_matrix[i * 6:i * 6 + 6, :] = setup_s_matrix(dq_W_E_vec[i], dq_H_B_vec[i])
+    t_matrix[i * 6:i * 6 + 6, :] = setup_s_matrix(dq_W_E_vec[i], dq_B_H_vec[i])
 
   rank_t_matrix = np.linalg.matrix_rank(t_matrix, tol=5e-2)
   U, s, V = np.linalg.svd(t_matrix)
@@ -142,58 +143,85 @@ def setup_t_matrix(dq_W_E_vec, dq_H_B_vec):
   return t_matrix.copy()
 
 
-def align(dq_W_E_vec, dq_H_B_vec, enforce_same_non_dual_scalar_sign=True, min_num_inliers=2):
+def align(dq_W_E_vec, dq_B_H_vec, enforce_same_non_dual_scalar_sign=True, min_num_inliers=2, exhaustive_search=False):
   """Do the actual hand eye-calibration as described in the referenced paper."""
   n_quaternions = len(dq_W_E_vec)
 
   if enforce_same_non_dual_scalar_sign:
     for i in range(n_quaternions):
       dq_W_E = dq_W_E_vec[i]
-      dq_H_B = dq_H_B_vec[i]
-      if ((dq_W_E.q_rot.w < 0. and dq_H_B.q_rot.w > 0.) or
-              (dq_W_E.q_rot.w > 0. and dq_H_B.q_rot.w < 0.)):
+      dq_B_H = dq_B_H_vec[i]
+      if ((dq_W_E.q_rot.w < 0. and dq_B_H.q_rot.w > 0.) or
+              (dq_W_E.q_rot.w > 0. and dq_B_H.q_rot.w < 0.)):
         dq_W_E_vec[i].dq = -dq_W_E_vec[i].dq.copy()
 
+  best_idx = -1
+  best_num_inliers = min_num_inliers - 1
+  best_dq_W_E_vec_filtered = []
+  best_dq_B_H_vec_filtered = []
+
+  if exhaustive_search:
+    print("Do exhaustive search to find biggest subset of inliers...")
+  else:
+    print("Search for first set of inliers bigger than {}...".format(min_num_inliers))
+
   # 0. Reject pairs where scalar parts of dual quaternions do not match.
-  # Find two indices to align the the two sets of poses.
-  found_first_two_inliers = False
   # Loop over all the indices to find an index of a pose pair.
   for j in range(n_quaternions):
     # Re-align all dual quaternion to the j-th dual quaternion.
     dq_W_E_vec = align_paths_at_index(dq_W_E_vec, j)
-    dq_H_B_vec = align_paths_at_index(dq_H_B_vec, j)
+    dq_B_H_vec = align_paths_at_index(dq_B_H_vec, j)
 
     dq_W_E_vec_filtered = []
-    dq_H_B_vec_filtered = []
+    dq_B_H_vec_filtered = []
     # Loop over the indices again starting at the first index to find at
     # least one second pair of poses until we find two poses that describe a
     # screw motion.
-    for i in range(j, n_quaternions):
+    for i in range(0, n_quaternions):
       dq_W_E = dq_W_E_vec[i]
-      dq_H_B = dq_H_B_vec[i]
+      dq_B_H = dq_B_H_vec[i]
       scalar_parts_W_E = dq_W_E.scalar()
-      scalar_parts_H_B = dq_H_B.scalar()
+      scalar_parts_B_H = dq_B_H.scalar()
       # Append the inliers to the filtered dual quaternion vectors.
-      if np.allclose(scalar_parts_W_E.dq, scalar_parts_H_B.dq, atol=1e-4):
+      if np.allclose(scalar_parts_W_E.dq, scalar_parts_B_H.dq, atol=1e-4):
         dq_W_E_vec_filtered.append(dq_W_E)
-        dq_H_B_vec_filtered.append(dq_H_B)
+        dq_B_H_vec_filtered.append(dq_B_H)
 
     # Break if we found at least two inliers.
-    assert len(dq_W_E_vec_filtered) == len(dq_H_B_vec_filtered)
-    has_enough_inliers = (len(dq_W_E_vec_filtered) > min_num_inliers)
-    if has_enough_inliers:
-      break
+    assert len(dq_W_E_vec_filtered) == len(dq_B_H_vec_filtered)
 
-    if j + 1 >= n_quaternions:
-      assert False, "Not enough inliers found."
+    if exhaustive_search:
+      has_the_most_inliers = (len(dq_W_E_vec_filtered) > best_num_inliers)
+      if has_the_most_inliers:
+        best_num_inliers = len(dq_W_E_vec_filtered)
+        best_idx = j
+        best_dq_W_E_vec_filtered = copy.deepcopy(dq_W_E_vec_filtered)
+        best_dq_B_H_vec_filtered = copy.deepcopy(dq_B_H_vec_filtered)
+        print("Found new best start idx: {} number of inliers: {}".format(best_idx, best_num_inliers))
+    else:
+      has_enough_inliers = (len(dq_W_E_vec_filtered) > min_num_inliers)
+      if has_enough_inliers:
+        best_idx = j
+        break
 
+      if j + 1 >= n_quaternions:
+        assert False, "Not enough inliers found."
+
+  if exhaustive_search:
+    if best_idx == -1:
+      assert False, "Not enough inliers found!"
+    dq_W_E_vec_filtered = best_dq_W_E_vec_filtered
+    dq_B_H_vec_filtered = best_dq_B_H_vec_filtered
+
+  print("Best start idx: {}".format(best_idx))
   print("Removed {} outliers from the initial set of poses.".format(
       len(dq_W_E_vec) - len(dq_W_E_vec_filtered)))
   print("Running the hand-eye calibration with the remaining {} pairs of "
         "poses".format(len(dq_W_E_vec_filtered)))
+
   # 1.
   # Construct 6n x 8 matrix T
-  t_matrix = setup_t_matrix(dq_W_E_vec_filtered, dq_H_B_vec_filtered)
+  t_matrix = setup_t_matrix(dq_W_E_vec_filtered, dq_B_H_vec_filtered)
 
   # 2.
   # Compute SVD of T and check if only two singular values are almost equal to
