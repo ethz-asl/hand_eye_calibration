@@ -185,7 +185,7 @@ def align(dq_W_E_vec, dq_B_H_vec, enforce_same_non_dual_scalar_sign=True, min_nu
       scalar_parts_W_E = dq_W_E.scalar()
       scalar_parts_B_H = dq_B_H.scalar()
       # Append the inliers to the filtered dual quaternion vectors.
-      if np.allclose(scalar_parts_W_E.dq, scalar_parts_B_H.dq, atol=1e-4):
+      if np.allclose(scalar_parts_W_E.dq, scalar_parts_B_H.dq, atol=1e-2):
         dq_W_E_vec_filtered.append(dq_W_E)
         dq_B_H_vec_filtered.append(dq_B_H)
 
