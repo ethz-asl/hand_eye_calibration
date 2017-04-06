@@ -13,7 +13,7 @@ def read_time_stamped_poses_from_csv_file(csv_file, JPL_quaternion_format=False)
   Assumes the following line format:
     timestamp [s], x [m], y [m], z [m], qx, qy, qz, qw
   The quaternion is expected in Hamilton format, if JPL_quaternion_format is True
-  it expects JPL quaternions and they will be converted to Hamiltonian quaterions.
+  it expects JPL quaternions and they will be converted to Hamiltonian quaternions.
   """
   with open(csv_file, 'r') as csvfile:
     csv_reader = csv.reader(csvfile, delimiter=',', quotechar='|')
