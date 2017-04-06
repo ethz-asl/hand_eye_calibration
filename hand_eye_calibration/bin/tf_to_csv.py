@@ -45,6 +45,9 @@ def write_transformation_to_csv_file(bag_file, target_frame, source_frame,
             (translation,
              hamilton_quaternion) = tf_tree.lookupTransform(target_frame, source_frame,
                                                             single_tf.header.stamp)
+            # print(translation)
+            rot_mat = tf.transformations.quaternion_matrix(hamilton_quaternion)[:3, :3]
+            translation = np.matmul(rot_mat.T, translation)
           except (tf.LookupException, tf.ConnectivityException,
                   tf.ExtrapolationException):
             # Only start counting if we already did at least one successful tf
