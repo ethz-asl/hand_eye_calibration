@@ -7,11 +7,13 @@ import numpy as np
 import csv
 
 
-def read_time_stamped_poses_from_csv_file(csv_file):
+def read_time_stamped_poses_from_csv_file(csv_file, JPL_quaternion_format=False):
   """
   Reads time stamped poses from a CSV file.
   Assumes the following line format:
     timestamp [s], x [m], y [m], z [m], qx, qy, qz, qw
+  The quaternion is expected in Hamilton format, if JPL_quaternion_format is True
+  it expects JPL quaternions and they will be converted to Hamiltonian quaterions.
   """
   with open(csv_file, 'r') as csvfile:
     csv_reader = csv.reader(csvfile, delimiter=',', quotechar='|')
@@ -24,7 +26,11 @@ def read_time_stamped_poses_from_csv_file(csv_file):
 
   quaternions = []
   for pose in poses:
-    quaternions.append(Quaternion(q=pose[3:]))
+    if JPL_quaternion_format:
+      quaternion_JPL = np.array([-pose[3], -pose[4], -pose[5], pose[6]])
+      quaternions.append(Quaternion(q=quaternion_JPL))
+    else:
+      quaternions.append(Quaternion(q=pose[3:]))
 
   return (time_stamped_poses.copy(), times, quaternions)
 
@@ -68,16 +74,33 @@ if __name__ == '__main__':
       required=True,
       help='Path to the CSV file where the aligned poses will be stored. (e.g. Eye poses in World frame)')
 
+  parser.add_argument(
+      '--quaternion_format',
+      default='Hamilton',
+      help='\'Hamilton\' [Default] or \'JPL\'. The input (and data in the output files) ' +
+      'will be converted to Hamiltonian quaternions.')
+
   args = parser.parse_args()
+
+  use_JPL_quaternion = False
+  if args.quaternion_format == 'JPL':
+    print("Input quaternion format was set to JPL. The input (and output of this script) "
+          "will be converted to Hamiltonian quaternions.")
+    use_JPL_quaternion = True
+  elif args.quaternion_format == 'Hamilton':
+    print("Input quaternion format was set to Hamilton.")
+    use_JPL_quaternion = False
+  else:
+    assert False, "Unknown quaternion format: \'{}\'".format(args.quaternion_format)
 
   print("Reading CSV files...")
   (time_stamped_poses_B_H, times_B_H, quaternions_B_H
-   ) = read_time_stamped_poses_from_csv_file(args.poses_B_H_csv_file)
+   ) = read_time_stamped_poses_from_csv_file(args.poses_B_H_csv_file, use_JPL_quaternion)
   print("Found ", time_stamped_poses_B_H.shape[
       0], " poses in file: ", args.poses_B_H_csv_file)
 
   (time_stamped_poses_W_E, times_W_E, quaternions_W_E
-   ) = read_time_stamped_poses_from_csv_file(args.poses_W_E_csv_file)
+   ) = read_time_stamped_poses_from_csv_file(args.poses_W_E_csv_file, use_JPL_quaternion)
   print("Found ", time_stamped_poses_W_E.shape[
       0], " poses in file: ", args.poses_W_E_csv_file)
 
