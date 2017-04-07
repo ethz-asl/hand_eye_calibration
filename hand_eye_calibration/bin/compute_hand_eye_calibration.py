@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# -*- coding: utf-8 -*-
 
 import argparse
 import csv
@@ -7,7 +8,7 @@ import numpy as np
 
 from hand_eye_calibration.dual_quaternion import DualQuaternion
 from hand_eye_calibration.dual_quaternion_hand_eye_calibration import (
-    align, draw_poses, align_paths_at_index)
+    align, draw_poses, align_paths_at_index, evaluate_alignment)
 
 # CONFIG
 paths_start_at_origin = True
@@ -29,9 +30,9 @@ if __name__ == "__main__":
       '--aligned_poses_E_W_csv_file', type=str,
       help='Alternative input file for the second poses. (e.g. World poses in Eye frame)')
 
-  parser.add_argument('--visualize', type=bool, help='Visualize the poses.')
+  parser.add_argument('--visualize', type=bool, default=False, help='Visualize the poses.')
   parser.add_argument('--plot_every_nth_pose', type=int,
-                      help='Plot only every n-th pose.', default=1)
+                      help='Plot only every n-th pose.', default=10)
   args = parser.parse_args()
 
   use_poses_B_H = (args.aligned_poses_B_H_csv_file is not None)
@@ -81,20 +82,53 @@ if __name__ == "__main__":
   dual_quat_W_E_vec = align_paths_at_index(dual_quat_W_E_vec)
 
   # Draw both paths in their Global/World frame.
-  poses1 = np.array([dual_quat_B_H_vec[0].to_pose().T])
-  poses2 = np.array([dual_quat_W_E_vec[0].to_pose().T])
-  for i in range(1, len(dual_quat_B_H_vec)):
-    poses1 = np.append(poses1, np.array(
-        [dual_quat_B_H_vec[i].to_pose().T]), axis=0)
-    poses2 = np.append(poses2, np.array(
-        [dual_quat_W_E_vec[i].to_pose().T]), axis=0)
   if args.visualize:
+    poses1 = np.array([dual_quat_B_H_vec[0].to_pose().T])
+    poses2 = np.array([dual_quat_W_E_vec[0].to_pose().T])
+    for i in range(1, len(dual_quat_B_H_vec)):
+      poses1 = np.append(poses1, np.array(
+          [dual_quat_B_H_vec[i].to_pose().T]), axis=0)
+      poses2 = np.append(poses2, np.array(
+          [dual_quat_W_E_vec[i].to_pose().T]), axis=0)
     every_nth_element = args.plot_every_nth_pose
     draw_poses(poses1[::every_nth_element], poses2[::every_nth_element], False)
+
+  # Compute hand-eye calibration.
   dq_H_E_estimated = align(
       dual_quat_B_H_vec, dual_quat_W_E_vec, enforce_same_non_dual_scalar_sign)
   dq_H_E_estimated.normalize()
   pose_H_E_estimated = dq_H_E_estimated.to_pose()
+
+  # Compute aligned poses.
+  dq_E_H_estimated = dq_H_E_estimated.inverse()
+  dq_E_H_estimated.normalize()
+  dq_E_H_estimated.enforce_positive_q_rot_w()
+
+  dual_quat_W_H_vec = []
+  for i in range(0, len(dual_quat_B_H_vec)):
+    dual_quat_W_H = dual_quat_W_E_vec[i] * dq_E_H_estimated
+    dual_quat_W_H.normalize()
+    dual_quat_W_H.enforce_positive_q_rot_w()
+    dual_quat_W_H_vec.append(dual_quat_W_H)
+
+  dual_quat_W_H_vec = align_paths_at_index(dual_quat_W_H_vec)
+
+  poses_2_aligned_to_1 = np.array([dual_quat_W_H_vec[0].to_pose().T])
+  for i in range(1, len(dual_quat_W_H_vec)):
+    poses_2_aligned_to_1 = np.append(poses_2_aligned_to_1, np.array(
+        [dual_quat_W_H_vec[i].to_pose().T]), axis=0)
+
+  # Draw aligned poses.
+  if args.visualize:
+    every_nth_element = args.plot_every_nth_pose
+    draw_poses(poses1[:: every_nth_element], poses_2_aligned_to_1[:: every_nth_element], True)
+
+  # Evaluate alignment.
+  (rmse_position, rmse_orientation) = evaluate_alignment(
+      poses1, poses_2_aligned_to_1, args.visualize)
+
+  print("Alignment evaluation: RMSE position: {}m RMSE orientation: {}°".format(
+      rmse_position, rmse_orientation))
 
   print("The hand-eye calibration's output pose is: \n" "{}".format(
         pose_H_E_estimated))

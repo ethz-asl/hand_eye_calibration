@@ -1,13 +1,15 @@
 
-import matplotlib.pyplot as plt
 from matplotlib.patches import FancyArrowPatch
 from mpl_toolkits.mplot3d import proj3d
 
 import copy
+import math
+import matplotlib.pyplot as plt
 import numpy as np
 import tf
 
 from hand_eye_calibration.dual_quaternion import DualQuaternion
+from hand_eye_calibration.quaternion import (Quaternion, angle_between_quaternions)
 
 # This implements the following paper.
 #
@@ -185,7 +187,7 @@ def align(dq_W_E_vec, dq_B_H_vec, enforce_same_non_dual_scalar_sign=True, min_nu
       scalar_parts_W_E = dq_W_E.scalar()
       scalar_parts_B_H = dq_B_H.scalar()
       # Append the inliers to the filtered dual quaternion vectors.
-      if np.allclose(scalar_parts_W_E.dq, scalar_parts_B_H.dq, atol=1e-4):
+      if np.allclose(scalar_parts_W_E.dq, scalar_parts_B_H.dq, atol=1e-2):
         dq_W_E_vec_filtered.append(dq_W_E)
         dq_B_H_vec_filtered.append(dq_B_H)
 
@@ -381,3 +383,69 @@ def draw_poses(poses, additional_poses=None, plot_arrows=True):
     # TODO(ff): Connect the corresponding points.
 
   plt.show(block=True)
+
+
+def evaluate_alignment(poses_A, poses_B, visualize=False):
+  assert np.array_equal(poses_A.shape, poses_B.shape), (
+      "Two pose vector of different size cannot be evaluated. "
+      "Size pose A: {} Size pose B: {}".format(poses_A.shape, poses_B.shape))
+  assert poses_A.shape[1] == 7, "poses_A are not valid poses!"
+  assert poses_B.shape[1] == 7, "poses_B are not valid poses!"
+
+  num_poses = poses_A.shape[0]
+
+  errors_position = np.zeros((num_poses, 1))
+  errors_orientation = np.zeros((num_poses, 1))
+  for i in range(0, num_poses):
+    # Sum up the squared norm of the pose error.
+    errors_position[i] = np.linalg.norm(poses_A[i, 0:3] - poses_B[i, 0:3], ord=2)
+
+    # Construct quaternions to compare.
+    quaternion_A = Quaternion(q=poses_A[i, 3:7])
+    quaternion_A.normalize()
+    if quaternion_A.w < 0:
+      quaternion_A.q = -quaternion_A.q
+    quaternion_B = Quaternion(q=poses_B[i, 3:7])
+    quaternion_B.normalize()
+    if quaternion_B.w < 0:
+      quaternion_B.q = -quaternion_B.q
+
+    # Sum up the square of the orientation angle error.
+    error_angle_rad = angle_between_quaternions(
+        quaternion_A, quaternion_B)
+    error_angle_degrees = math.degrees(error_angle_rad)
+    if error_angle_degrees > 180.0:
+      error_angle_degrees = math.fabs(360.0 - error_angle_degrees)
+    errors_orientation[i] = error_angle_degrees
+
+  rmse_pose_accumulator = np.sum(np.square(errors_position))
+  rmse_orientation_accumulator = np.sum(np.square(errors_orientation))
+
+  # Compute RMSE.
+  rmse_pose = math.sqrt(rmse_pose_accumulator / num_poses)
+  rmse_orientation = math.sqrt(rmse_orientation_accumulator / num_poses)
+
+  # Plot the error.
+  if visualize:
+    title_position = 1.05
+    fig = plt.figure()
+    a1 = fig.add_subplot(2, 1, 1)
+    fig.suptitle("Alignment Evaluation", fontsize='24')
+    a1.set_title(
+        "Red = Position Error Norm [m] - Black = RMSE", y=title_position)
+    plt.plot(errors_position, c='r')
+    plt.plot(rmse_pose * np.ones((num_poses, 1)), c='k')
+    a2 = fig.add_subplot(2, 1, 2)
+    a2.set_title(
+        "Red = Absolute Orientation Error [Degrees] - Black = RMSE", y=title_position)
+    plt.plot(errors_orientation, c='r')
+    plt.plot(rmse_orientation * np.ones((num_poses, 1)), c='k')
+    if plt.get_backend() == 'TkAgg':
+      mng = plt.get_current_fig_manager()
+      max_size = mng.window.maxsize()
+      max_size = (max_size[0], max_size[1] * 0.45)
+      mng.resize(*max_size)
+    fig.tight_layout()
+    plt.subplots_adjust(left=0.025, right=0.975, top=0.8, bottom=0.05)
+    plt.show()
+  return (rmse_pose, rmse_orientation)

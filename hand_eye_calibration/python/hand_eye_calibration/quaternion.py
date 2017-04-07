@@ -288,7 +288,7 @@ def quaternions_interpolate(q_left, t_left, q_right, t_right, times):
 
 def angle_between_quaternions(q1, q2):
   """ Returns the angle between two quaternions, q1 and q2. """
-  return 2 * np.arccos(np.dot(q1.q, q2.inverse().q))
+  return 2 * np.arccos((q1 * q2.inverse()).w)
 
 
 def angular_velocity_between_quaternions(q1, q2, t):
