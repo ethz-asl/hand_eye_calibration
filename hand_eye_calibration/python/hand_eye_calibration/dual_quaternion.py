@@ -174,6 +174,12 @@ class DualQuaternion(object):
     return DualQuaternion(self.q_rot.inverse(),
                           -self.q_rot.inverse() * self.q_dual * self.q_rot.inverse())
 
+  def enforce_positive_q_rot_w(self):
+    """ Enforce a positive real part of the rotation quaternion. """
+    assert self.norm()[0] > 1e-8
+    if self.q_rot.w < 0.0:
+      self.dq = -self.dq
+
   def norm(self):
     """ The norm of a dual quaternion. """
     assert self.q_rot.norm() > 1e-8, (
