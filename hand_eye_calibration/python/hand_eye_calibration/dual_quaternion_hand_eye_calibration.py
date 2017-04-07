@@ -10,6 +10,7 @@ import tf
 
 from hand_eye_calibration.dual_quaternion import DualQuaternion
 from hand_eye_calibration.quaternion import (Quaternion, angle_between_quaternions)
+from hand_eye_calibration.hand_eye_calibration_plotting_tools import plot_alignment_errors
 
 # This implements the following paper.
 #
@@ -38,19 +39,6 @@ from hand_eye_calibration.quaternion import (Quaternion, angle_between_quaternio
 #
 # T_B_W: Denotes the transformation from a point in the World frame to the
 # base frame.
-
-
-class Arrow3D(FancyArrowPatch):
-
-  def __init__(self, xs, ys, zs, *args, **kwargs):
-    FancyArrowPatch.__init__(self, (0, 0), (0, 0), *args, **kwargs)
-    self._verts3d = xs, ys, zs
-
-  def draw(self, renderer):
-    xs3d, ys3d, zs3d = self._verts3d
-    xs, ys, zs = proj3d.proj_transform(xs3d, ys3d, zs3d, renderer.M)
-    self.set_positions((xs[0], ys[0]), (xs[1], ys[1]))
-    FancyArrowPatch.draw(self, renderer)
 
 
 def compute_dual_quaternions_with_offset(dq_B_H_vec, dq_H_E, dq_B_W):
@@ -295,84 +283,6 @@ def align(dq_W_E_vec, dq_B_H_vec, enforce_same_non_dual_scalar_sign=True, min_nu
   return dq_H_E
 
 
-def draw_poses(poses, additional_poses=None, plot_arrows=True):
-  fig = plt.figure()
-  ax = fig.add_subplot(111, projection='3d')
-  positions = ax.plot(xs=poses[:, 0], ys=poses[:, 1],
-                      zs=poses[:, 2], color='blue')
-  for pose in poses:
-    # Position point
-    ax.plot([pose[0]], [pose[1]], [pose[2]], 'o',
-            markersize=10, color='blue', alpha=0.5)
-    if not plot_arrows:
-      continue
-    t = tf.transformations.quaternion_matrix(pose[3:7].copy())
-    # Add orientation arrow.
-    x_arrow = np.array([1, 0, 0, 0]).copy()
-    x_arrow_rotated = np.dot(t, x_arrow)
-    a = Arrow3D(
-        [pose[0], pose[0] + x_arrow_rotated[0]
-         ], [pose[1], pose[1] + x_arrow_rotated[1]],
-        [pose[2], pose[2] + x_arrow_rotated[2]],
-        mutation_scale=20,
-        lw=3,
-        arrowstyle="-|>",
-        color="b")
-    ax.add_artist(a)
-
-    y_arrow = np.array([0, 1, 0, 0]).copy()
-    y_arrow_rotated = np.dot(t, y_arrow)
-    a = Arrow3D(
-        [pose[0], pose[0] + y_arrow_rotated[0]
-         ], [pose[1], pose[1] + y_arrow_rotated[1]],
-        [pose[2], pose[2] + y_arrow_rotated[2]],
-        mutation_scale=20,
-        lw=3,
-        arrowstyle="-|>",
-        color="c")
-    ax.add_artist(a)
-  if additional_poses is not None:
-    positions_2 = ax.plot(
-        xs=additional_poses[:, 0],
-        ys=additional_poses[:, 1],
-        zs=additional_poses[:, 2],
-        color='red')
-    plt.legend(iter(positions + positions_2), ('pos1', 'pos2'))
-    for pose in additional_poses:
-      # Position point
-      ax.plot([pose[0]], [pose[1]], [pose[2]], 'o',
-              markersize=10, color='red', alpha=0.5)
-      if not plot_arrows:
-        continue
-      # Add orientation arrow.
-      x_arrow = np.array([1, 0, 0, 0]).copy()
-      t = tf.transformations.quaternion_matrix(pose[3:7].copy())
-      arrow_rotated = np.dot(t, x_arrow)
-      a = Arrow3D(
-          [pose[0], pose[0] + arrow_rotated[0]
-           ], [pose[1], pose[1] + arrow_rotated[1]],
-          [pose[2], pose[2] + arrow_rotated[2]],
-          mutation_scale=20,
-          lw=3,
-          arrowstyle="-|>",
-          color="r")
-      ax.add_artist(a)
-      y_arrow = np.array([0, 1, 0, 0]).copy()
-      y_arrow_rotated = np.dot(t, y_arrow)
-      a = Arrow3D(
-          [pose[0], pose[0] + y_arrow_rotated[0]
-           ], [pose[1], pose[1] + y_arrow_rotated[1]],
-          [pose[2], pose[2] + y_arrow_rotated[2]],
-          mutation_scale=20,
-          lw=3,
-          arrowstyle="-|>",
-          color="y")
-      ax.add_artist(a)
-    # TODO(ff): Connect the corresponding points.
-
-  plt.show(block=True)
-
-
 def evaluate_alignment(poses_A, poses_B, visualize=False):
   assert np.array_equal(poses_A.shape, poses_B.shape), (
       "Two pose vector of different size cannot be evaluated. "
@@ -415,25 +325,7 @@ def evaluate_alignment(poses_A, poses_B, visualize=False):
 
   # Plot the error.
   if visualize:
-    title_position = 1.05
-    fig = plt.figure()
-    a1 = fig.add_subplot(2, 1, 1)
-    fig.suptitle("Alignment Evaluation", fontsize='24')
-    a1.set_title(
-        "Red = Position Error Norm [m] - Black = RMSE", y=title_position)
-    plt.plot(errors_position, c='r')
-    plt.plot(rmse_pose * np.ones((num_poses, 1)), c='k')
-    a2 = fig.add_subplot(2, 1, 2)
-    a2.set_title(
-        "Red = Absolute Orientation Error [Degrees] - Black = RMSE", y=title_position)
-    plt.plot(errors_orientation, c='r')
-    plt.plot(rmse_orientation * np.ones((num_poses, 1)), c='k')
-    if plt.get_backend() == 'TkAgg':
-      mng = plt.get_current_fig_manager()
-      max_size = mng.window.maxsize()
-      max_size = (max_size[0], max_size[1] * 0.45)
-      mng.resize(*max_size)
-    fig.tight_layout()
-    plt.subplots_adjust(left=0.025, right=0.975, top=0.8, bottom=0.05)
-    plt.show()
+    plot_alignment_errors(errors_position, rmse_pose,
+                          errors_orientation, rmse_orientation)
+
   return (rmse_pose, rmse_orientation)
