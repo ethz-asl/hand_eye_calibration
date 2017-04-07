@@ -1,13 +1,15 @@
 
-import matplotlib.pyplot as plt
 from matplotlib.patches import FancyArrowPatch
 from mpl_toolkits.mplot3d import proj3d
 
 import copy
+import math
+import matplotlib.pyplot as plt
 import numpy as np
 import tf
 
 from hand_eye_calibration.dual_quaternion import DualQuaternion
+from hand_eye_calibration.quaternion import (Quaternion, angle_between_quaternions)
 
 # This implements the following paper.
 #
@@ -369,3 +371,38 @@ def draw_poses(poses, additional_poses=None, plot_arrows=True):
     # TODO(ff): Connect the corresponding points.
 
   plt.show(block=True)
+
+
+def evaluate_alignment(poses_A, poses_B):
+  assert np.array_equal(poses_A.shape, poses_B.shape), (
+      "Two pose vector of different size cannot be evaluated. "
+      "Size pose A: {} Size pose B: {}".format(poses_A.shape, poses_B.shape))
+  num_poses = poses_A.shape[0]
+
+  rmse_pose_accumulator = 0.0
+  rmse_orientation_accumulator = 0.0
+  for i in range(0, num_poses):
+    # Sum up the squared norm of the pose error.
+    rmse_pose_accumulator += np.linalg.norm(poses_A[i, 0:3] - poses_B[i, 0:3], ord=2) ** 2
+
+    # Construct quaternions to compare.
+    quaternion_A = Quaternion(q=poses_A[i, 3:7])
+    quaternion_A.normalize()
+    if quaternion_A.w < 0:
+      quaternion_A.q = -quaternion_A.q
+    quaternion_B = Quaternion(q=poses_B[i, 3:7])
+    quaternion_B.normalize()
+    if quaternion_B.w < 0:
+      quaternion_B.q = -quaternion_B.q
+
+    # Sum up the square of the orientation angle error.
+    error_angle_rad = angle_between_quaternions(
+        quaternion_A, quaternion_B)
+    error_angle = math.degrees(error_angle_rad)
+    if error_angle > 180.0:
+      error_angle = 360.0 - error_angle
+    rmse_orientation_accumulator += error_angle ** 2
+
+  rmse_pose = math.sqrt(rmse_pose_accumulator / num_poses)
+  rmse_orientation = math.sqrt(rmse_orientation_accumulator / num_poses)
+  return (rmse_pose, rmse_orientation)
