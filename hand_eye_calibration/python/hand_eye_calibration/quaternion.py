@@ -111,6 +111,15 @@ class Quaternion(object):
     z = (rotation_matrix[1, 0] - rotation_matrix[0, 1]) / w4
     return cls(x, y, z, w)
 
+  @classmethod
+  def from_angle_axis(cls, angle, axis):
+    q = cls(axis[0], axis[1], axis[2], 0.0)
+    q_norm = q.norm()
+    if q_norm > 1e-16:
+      q *= np.sin(angle / 2.0) / q_norm
+    q.q[3] = np.cos(angle / 2.0)
+    return cls(q=q.q.copy())
+
   def angle_axis(self):
     """ Returns the axis and angle of a queternion.
 

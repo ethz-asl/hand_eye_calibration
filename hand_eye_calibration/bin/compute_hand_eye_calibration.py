@@ -8,7 +8,8 @@ import numpy as np
 
 from hand_eye_calibration.dual_quaternion import DualQuaternion
 from hand_eye_calibration.dual_quaternion_hand_eye_calibration import (
-    align, draw_poses, align_paths_at_index, evaluate_alignment)
+    align, align_paths_at_index, evaluate_alignment)
+from hand_eye_calibration.hand_eye_calibration_plotting_tools import plot_poses
 
 # CONFIG
 paths_start_at_origin = True
@@ -91,7 +92,8 @@ if __name__ == "__main__":
       poses2 = np.append(poses2, np.array(
           [dual_quat_W_E_vec[i].to_pose().T]), axis=0)
     every_nth_element = args.plot_every_nth_pose
-    draw_poses(poses1[::every_nth_element], poses2[::every_nth_element], False)
+    plot_poses(poses1[::every_nth_element], poses2[::every_nth_element],
+               True, title="3D Poses Before Alignment")
 
   # Compute hand-eye calibration.
   dq_H_E_estimated = align(
@@ -121,7 +123,8 @@ if __name__ == "__main__":
   # Draw aligned poses.
   if args.visualize:
     every_nth_element = args.plot_every_nth_pose
-    draw_poses(poses1[:: every_nth_element], poses_2_aligned_to_1[:: every_nth_element], True)
+    plot_poses(poses1[:: every_nth_element], poses_2_aligned_to_1[:: every_nth_element],
+               True, title="3D Poses After Alignment")
 
   # Evaluate alignment.
   (rmse_position, rmse_orientation) = evaluate_alignment(
