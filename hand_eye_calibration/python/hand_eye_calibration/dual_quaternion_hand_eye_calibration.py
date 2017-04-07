@@ -213,6 +213,18 @@ def align(dq_W_E_vec, dq_B_H_vec, enforce_same_non_dual_scalar_sign=True, min_nu
     dq_W_E_vec_filtered = best_dq_W_E_vec_filtered
     dq_B_H_vec_filtered = best_dq_B_H_vec_filtered
 
+  for i in range(n_quaternions):
+    dq_W_E_i = dq_W_E_vec[i]
+    dq_B_H_i = dq_B_H_vec[i]
+    for j in range(i + 1, n_quaternions):
+      dq_W_E_j = dq_W_E_vec[j]
+      dq_B_H_j = dq_B_H_vec[j]
+      # get screw axis
+      # calculate dot product
+      # if dot product > threshold (0.9)
+      # remove poses
+      # check that there is enough poses in the end
+
   print("Best start idx: {}".format(best_idx))
   print("Removed {} outliers from the initial set of poses.".format(
       len(dq_W_E_vec) - len(dq_W_E_vec_filtered)))
