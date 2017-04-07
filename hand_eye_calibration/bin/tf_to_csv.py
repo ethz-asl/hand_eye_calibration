@@ -24,6 +24,11 @@ def write_transformation_to_csv_file(bag_file, target_frame, source_frame,
       tf_tree.setTransform(msg_tf)
   bag.close()
 
+  if output_position_in_source_frame:
+    print("The [x, y, z] position vector of the 3D pose will "
+          "be rotated, such that it represents the 3D position of the target "
+          "frame origin in the source frame coordinate system!")
+
   print("Listening to tf transformation from ", source_frame, " to ",
         target_frame)
   # Reopen bag
