@@ -1,16 +1,20 @@
+# -*- coding: utf-8 -*-
 
 from matplotlib.patches import FancyArrowPatch
 from mpl_toolkits.mplot3d import proj3d
+
 
 import copy
 import math
 import matplotlib.pyplot as plt
 import numpy as np
+import random
 import tf
 
 from hand_eye_calibration.dual_quaternion import DualQuaternion
 from hand_eye_calibration.quaternion import (Quaternion, angle_between_quaternions)
-from hand_eye_calibration.hand_eye_calibration_plotting_tools import plot_alignment_errors
+from hand_eye_calibration.hand_eye_calibration_plotting_tools import (
+    plot_alignment_errors, plot_poses)
 
 # This implements the following paper.
 #
@@ -41,6 +45,22 @@ from hand_eye_calibration.hand_eye_calibration_plotting_tools import plot_alignm
 # base frame.
 
 
+class HandEyeConfig:
+
+  def __init__(self):
+    self.ransac_max_number_iterations = 1000
+    self.ransac_sample_rejection_scalar_part_equality_tolerance = 1e-2
+    self.ransac_sample_size = 10
+    self.ransac_evaluation_method = "sample_hand_eye_calibration"
+    self.ransac_rmse_position_threshold = 0.1
+    self.ransac_rmse_orientation_threshold = 5.0
+
+    self.hand_eye_calibration_rejection_scalar_part_equality_tolerance = 4e-2
+
+    self.visualize = False
+    self.visualize_plot_every_nth_pose = 10
+
+
 def compute_dual_quaternions_with_offset(dq_B_H_vec, dq_H_E, dq_B_W):
   n_samples = len(dq_B_H_vec)
   dq_W_E_vec = []
@@ -67,10 +87,16 @@ def align_paths_at_index(dq_vec, align_index=0, enforce_positive_q_rot_w=True):
       if dq_vec_starting_at_origin[i].q_rot.w < 0.:
         dq_vec_starting_at_origin[i].dq = -(
             dq_vec_starting_at_origin[i].dq.copy())
-  assert np.allclose(dq_vec_starting_at_origin[align_index].dq,
+
+  # Rearange poses such that it starts at the origin.
+  dq_vec_rearanged = dq_vec_starting_at_origin[align_index:] + \
+      dq_vec_starting_at_origin[:align_index]
+
+  assert np.allclose(dq_vec_rearanged[0].dq,
                      [0., 0., 0., 1.0, 0., 0., 0., 0.],
-                     atol=1.e-8), dq_vec_starting_at_origin[0]
-  return dq_vec_starting_at_origin
+                     atol=1.e-8), dq_vec_rearanged[0]
+
+  return dq_vec_rearanged
 
 
 def skew_from_vector(vector):
@@ -133,85 +159,42 @@ def setup_t_matrix(dq_W_E_vec, dq_B_H_vec):
   return t_matrix.copy()
 
 
-def align(dq_W_E_vec, dq_B_H_vec, enforce_same_non_dual_scalar_sign=True, min_num_inliers=2, exhaustive_search=False):
+def compute_hand_eye_calibration(dq_B_H_vec_inliers, dq_W_E_vec_inliers, scalar_part_tolerance=1e-2, enforce_same_non_dual_scalar_sign=True):
   """Do the actual hand eye-calibration as described in the referenced paper."""
-  n_quaternions = len(dq_W_E_vec)
+  n_quaternions = len(dq_B_H_vec_inliers)
+
+  assert np.allclose(dq_B_H_vec_inliers[0].dq,
+                     [0., 0., 0., 1.0, 0., 0., 0., 0.],
+                     atol=1.e-8), dq_B_H_vec_inliers[0]
+  assert np.allclose(dq_W_E_vec_inliers[0].dq,
+                     [0., 0., 0., 1.0, 0., 0., 0., 0.],
+                     atol=1.e-8), dq_W_E_vec_inliers[0]
 
   if enforce_same_non_dual_scalar_sign:
     for i in range(n_quaternions):
-      dq_W_E = dq_W_E_vec[i]
-      dq_B_H = dq_B_H_vec[i]
+      dq_W_E = dq_W_E_vec_inliers[i]
+      dq_B_H = dq_B_H_vec_inliers[i]
       if ((dq_W_E.q_rot.w < 0. and dq_B_H.q_rot.w > 0.) or
               (dq_W_E.q_rot.w > 0. and dq_B_H.q_rot.w < 0.)):
-        dq_W_E_vec[i].dq = -dq_W_E_vec[i].dq.copy()
+        dq_W_E_vec_inliers[i].dq = -dq_W_E_vec_inliers[i].dq.copy()
 
-  best_idx = -1
-  best_num_inliers = min_num_inliers - 1
-  best_dq_W_E_vec_filtered = []
-  best_dq_B_H_vec_filtered = []
-
-  if exhaustive_search:
-    print("Do exhaustive search to find biggest subset of inliers...")
-  else:
-    print("Search for first set of inliers bigger than {}...".format(min_num_inliers))
-
-  # 0. Reject pairs where scalar parts of dual quaternions do not match.
-  # Loop over all the indices to find an index of a pose pair.
+  # 0. Stop alignment if there are still pairs that do not have matching scalar parts.
   for j in range(n_quaternions):
     # Re-align all dual quaternion to the j-th dual quaternion.
-    dq_W_E_vec = align_paths_at_index(dq_W_E_vec, j)
-    dq_B_H_vec = align_paths_at_index(dq_B_H_vec, j)
+    dq_B_H = dq_W_E_vec_inliers[j]
+    dq_W_E = dq_B_H_vec_inliers[j]
 
-    dq_W_E_vec_filtered = []
-    dq_B_H_vec_filtered = []
+    scalar_parts_B_H = dq_B_H.scalar()
+    scalar_parts_W_E = dq_W_E.scalar()
 
-    # Loop over the indices again starting at the first index to find either:
-    # - The first set of inliers of at least size min_num_inliers
-    #       OR
-    # - The largest set of inliers using an exhaustive search
-    for i in range(0, n_quaternions):
-      dq_W_E = dq_W_E_vec[i]
-      dq_B_H = dq_B_H_vec[i]
-      scalar_parts_W_E = dq_W_E.scalar()
-      scalar_parts_B_H = dq_B_H.scalar()
-      # Append the inliers to the filtered dual quaternion vectors.
-      if np.allclose(scalar_parts_W_E.dq, scalar_parts_B_H.dq, atol=1e-2):
-        dq_W_E_vec_filtered.append(dq_W_E)
-        dq_B_H_vec_filtered.append(dq_B_H)
-
-    assert len(dq_W_E_vec_filtered) == len(dq_B_H_vec_filtered)
-
-    if exhaustive_search:
-      has_the_most_inliers = (len(dq_W_E_vec_filtered) > best_num_inliers)
-      if has_the_most_inliers:
-        best_num_inliers = len(dq_W_E_vec_filtered)
-        best_idx = j
-        best_dq_W_E_vec_filtered = copy.deepcopy(dq_W_E_vec_filtered)
-        best_dq_B_H_vec_filtered = copy.deepcopy(dq_B_H_vec_filtered)
-        print("Found new best start idx: {} number of inliers: {}".format(best_idx, best_num_inliers))
-    else:
-      has_enough_inliers = (len(dq_W_E_vec_filtered) > min_num_inliers)
-      if has_enough_inliers:
-        best_idx = j
-        break
-
-      if j + 1 >= n_quaternions:
-        assert False, "Not enough inliers found."
-
-  if exhaustive_search:
-    assert best_idx != -1, "Not enough inliers found!"
-    dq_W_E_vec_filtered = best_dq_W_E_vec_filtered
-    dq_B_H_vec_filtered = best_dq_B_H_vec_filtered
-
-  print("Best start idx: {}".format(best_idx))
-  print("Removed {} outliers from the initial set of poses.".format(
-      len(dq_W_E_vec) - len(dq_W_E_vec_filtered)))
-  print("Running the hand-eye calibration with the remaining {} pairs of "
-        "poses".format(len(dq_W_E_vec_filtered)))
+    assert np.allclose(scalar_parts_B_H.dq, scalar_parts_W_E.dq,
+                       atol=scalar_part_tolerance), (
+        "Mismatch of scalar parts of dual quaternion at idx {}:"
+        " dq_B_H: {} dq_W_E: {}".format(j, dq_B_H, dq_W_E))
 
   # 1.
   # Construct 6n x 8 matrix T
-  t_matrix = setup_t_matrix(dq_W_E_vec_filtered, dq_B_H_vec_filtered)
+  t_matrix = setup_t_matrix(dq_B_H_vec_inliers, dq_W_E_vec_inliers)
 
   # 2.
   # Compute SVD of T and check if only two singular values are almost equal to
@@ -329,3 +312,221 @@ def evaluate_alignment(poses_A, poses_B, visualize=False):
                           errors_orientation, rmse_orientation)
 
   return (rmse_pose, rmse_orientation)
+
+
+def get_aligned_poses(dq_B_H_vec, dq_W_E_vec, dq_H_E_estimated):
+  assert len(dq_W_E_vec) == len(dq_B_H_vec)
+
+  # Compute aligned poses.
+  dq_E_H_estimated = dq_H_E_estimated.inverse()
+  dq_E_H_estimated.normalize()
+  dq_E_H_estimated.enforce_positive_q_rot_w()
+
+  dq_W_H_vec = []
+  for i in range(0, len(dq_B_H_vec)):
+    dq_W_H = dq_W_E_vec[i] * dq_E_H_estimated
+    dq_W_H.normalize()
+
+    if ((dq_W_H.q_rot.w < 0. and dq_B_H_vec[i].q_rot.w > 0.) or
+            (dq_W_H.q_rot.w > 0. and dq_B_H_vec[i].q_rot.w < 0.)):
+      dq_W_H.dq = -dq_W_H.dq.copy()
+
+    dq_W_H_vec.append(dq_W_H)
+
+  dq_W_H_vec = align_paths_at_index(dq_W_H_vec)
+
+  # Convert to poses.
+  poses_W_H = np.array([dq_W_H_vec[0].to_pose().T])
+  for i in range(1, len(dq_W_H_vec)):
+    poses_W_H = np.append(poses_W_H, np.array(
+        [dq_W_H_vec[i].to_pose().T]), axis=0)
+  poses_B_H = np.array([dq_B_H_vec[0].to_pose().T])
+  for i in range(1, len(dq_B_H_vec)):
+    poses_B_H = np.append(poses_B_H, np.array(
+        [dq_B_H_vec[i].to_pose().T]), axis=0)
+
+  return (poses_B_H.copy(), poses_W_H.copy())
+
+
+def compute_hand_eye_calibration_RANSAC(dq_B_H_vec, dq_W_E_vec, config):
+  assert len(dq_W_E_vec) == len(dq_B_H_vec)
+
+  full_iterations = 0
+  prerejected_samples = 0
+
+  num_poses = len(dq_W_E_vec)
+  indices_set = set(range(0, num_poses))
+
+  # Result variables:
+  best_inlier_idx_set = None
+  best_num_inliers = 0
+  best_rmse_position = np.inf
+  best_rmse_orientation = np.inf
+  best_estimated_dq_H_E = None
+
+  print("Running RANSAC...")
+  while full_iterations < config.ransac_max_number_iterations:
+    sample_indices = random.sample(indices_set, config.ransac_sample_size)
+
+    samples_dq_W_E = [dq_W_E_vec[idx] for idx in sample_indices]
+    samples_dq_B_H = [dq_B_H_vec[idx] for idx in sample_indices]
+    assert len(samples_dq_W_E) == len(samples_dq_B_H)
+    assert len(samples_dq_W_E) == config.ransac_sample_size
+
+    # Transform all sample poses such that the first pose becomes the origin.
+    aligned_samples_dq_B_H = align_paths_at_index(samples_dq_B_H,
+                                                  align_index=0)
+    aligned_samples_dq_W_E = align_paths_at_index(samples_dq_W_E,
+                                                  align_index=0)
+    assert len(aligned_samples_dq_B_H) == len(aligned_samples_dq_W_E)
+
+    # Reject the sample early if not even the samples have a similar scalar part.
+    # This should speed up RANSAC.
+    good_sample = True
+    for i in range(0, config.ransac_sample_size):
+      scalar_parts_W_E = aligned_samples_dq_W_E[i].scalar()
+      scalar_parts_B_H = aligned_samples_dq_B_H[i].scalar()
+      if not np.allclose(scalar_parts_W_E.dq, scalar_parts_B_H.dq,
+                         atol=config.ransac_sample_rejection_scalar_part_equality_tolerance):
+        good_sample = False
+        prerejected_samples += 1
+        break
+
+    if not good_sample:
+      continue
+
+    # Transform all poses such that the pose at the first sample index becomes the origin.
+
+    print("Align all poses at index: {}".format(sample_indices[0]))
+    aligned_dq_B_H = align_paths_at_index(dq_B_H_vec, sample_indices[0])
+    aligned_dq_W_E = align_paths_at_index(dq_W_E_vec, sample_indices[0])
+
+    # Evaluate the sample.
+    dq_H_E_estimated = None
+    if config.ransac_evaluation_method == "sample_hand_eye_calibration":
+
+      # Compute hand-eye calibration on SAMPLES only.
+      dq_H_E_estimated = compute_hand_eye_calibration(
+          aligned_samples_dq_B_H, aligned_samples_dq_W_E,
+          config.hand_eye_calibration_rejection_scalar_part_equality_tolerance)
+      dq_H_E_estimated.normalize()
+
+    elif config.ransac_evaluation_method == "scalar_part_equality":
+      assert False, "Needs implementing!"
+      inlier_dq_B_H = []
+      inlier_dq_W_E = []
+
+      num_inliers = 0
+      for i in range(0, num_poses):
+        scalar_parts_B_H = aligned_dq_B_H[i].scalar()
+        scalar_parts_W_E = aligned_dq_W_E[i].scalar()
+        if np.allclose(scalar_parts_W_E.dq, scalar_parts_B_H.dq,
+                       atol=config.ransac_sample_rejection_scalar_part_equality_tolerance):
+          num_inliers += 1
+          inlier_dq_B_H.append(aligned_dq_B_H[i])
+          inlier_dq_W_E.append(aligned_dq_W_E[i])
+
+      # Compute hand-eye calibration on the INLIERS only.
+      dq_H_E_estimated = compute_hand_eye_calibration(
+          inlier_dq_B_H, inlier_dq_W_E,
+          config.hand_eye_calibration_rejection_scalar_part_equality_tolerance)
+      dq_H_E_estimated.normalize()
+
+    elif config.ransac_evaluation_method == "full_hand_eye_calibration":
+      assert False, "Needs fixing!"
+      # Compute hand-eye calibration on ALL POSES.
+      dq_H_E_estimated = compute_hand_eye_calibration(
+          aligned_dq_B_H, aligned_dq_W_E,
+          config.hand_eye_calibration_rejection_scalar_part_equality_tolerance)
+      dq_H_E_estimated.normalize()
+
+    assert dq_H_E_estimated is not None
+
+    # Evaluate hand eye evaluation for all poses.
+    (poses_B_H, poses_W_H) = get_aligned_poses(
+        aligned_dq_B_H, aligned_dq_W_E, dq_H_E_estimated)
+    (rmse_position, rmse_orientation) = evaluate_alignment(poses_B_H, poses_W_H)
+
+    if rmse_position < best_rmse_position and rmse_orientation < best_rmse_orientation:
+      best_estimated_dq_H_E = dq_H_E_estimated
+      best_rmse_position = rmse_position
+      best_rmse_orientation = rmse_orientation
+      best_inlier_idx_set = sample_indices
+
+      print("Found a new best sample:\n\t\tRMSE position:    {:10.4f}\n\t\tRMSE orientation: {:10.4f}".format(
+          best_rmse_position, best_rmse_orientation))
+    else:
+      print("Rejected sample:\n\t\tRMSE position:    {:10.4f}\n\t\tRMSE orientation: {:10.4f}\n\t\tdq_H_E: {}".format(
+          rmse_position, rmse_orientation, dq_H_E_estimated))
+      print("===> Reject sample based on hand-eye calibration evaluation.\n")
+
+    full_iterations += 1
+
+  print("Finished RANSAC.")
+  print("\t\tRANSAC iterations: {}".format(full_iterations))
+  print("\t\tRANSAC prerejected samples: {}".format(prerejected_samples))
+  print("\t\tRMSE position: {}".format(best_rmse_position))
+  print("\t\tRMSE orientation: {}".format(best_rmse_orientation))
+
+  if best_estimated_dq_H_E is None:
+    print("!!! RANSAC couldn't find a solution !!!")
+    return (False, None)
+
+  # Evaluate quality of the best inliers found:
+  if config.ransac_evaluation_method == "sample_hand_eye_calibration":
+    if(best_rmse_position < config.ransac_rmse_position_threshold and
+       best_rmse_orientation < config.ransac_rmse_orientation_threshold):
+      print("Hand-eye calibration successful:")
+      print("\t\tSample indices (used for the hand-eye calibration): {}".format(best_inlier_idx_set))
+      print("\t\tSample used for alignment: {}".format(best_inlier_idx_set[0]))
+      print("\t\tRMSE position: {}".format(best_rmse_position))
+      print("\t\tRMSE orientation: {}".format(best_rmse_orientation))
+      print("\t\tdq_H_E: {}".format(best_estimated_dq_H_E))
+      print("\t\tT_H_E: {}".format(best_estimated_dq_H_E.to_matrix()))
+      pose_vec = best_estimated_dq_H_E.to_pose()
+      print("\t\tTranslation norm: {}".format(np.linalg.norm(pose_vec[0:3])))
+
+      success = True
+    else:
+      print("Solution rejected!")
+      success = False
+
+  elif config.ransac_evaluation_method == "scalar_part_equality":
+    # Transform all poses such that the pose at the first sample index becomes the origin.
+
+    # TODO(mfehr): Implement!
+
+    return (False, None)
+
+  elif config.ransac_evaluation_method == "full_hand_eye_calibration":
+    if(best_rmse_position < config.ransac_rmse_position_threshold and
+       best_rmse_orientation < config.ransac_rmse_orientation_threshold):
+      print("Hand-eye calibration successful:")
+      print("\t\tSample indices (used for sample rejection only): {}".format(best_inlier_idx_set))
+      print("\t\tSample used for alignment: {}".format(best_inlier_idx_set[0]))
+      print("\t\tRMSE position: {}".format(best_rmse_position))
+      print("\t\tRMSE orientation: {}".format(best_rmse_orientation))
+      print("\t\tdq_H_E: {}".format(best_estimated_dq_H_E))
+      print("\t\tT_H_E: {}".format(best_estimated_dq_H_E.to_matrix()))
+      pose_vec = best_estimated_dq_H_E.to_pose()
+      print("\t\tTranslation norm: {}".format(np.linalg.norm(pose_vec[0:3])))
+      success = True
+      return (True, best_estimated_dq_H_E)
+    else:
+      print("Solution rejected!")
+      success = False
+
+  if success:
+    aligned_dq_W_E = align_paths_at_index(dq_W_E_vec, best_inlier_idx_set[0])
+    aligned_dq_B_H = align_paths_at_index(dq_B_H_vec, best_inlier_idx_set[0])
+
+    (poses_B_H, poses_W_H) = get_aligned_poses(aligned_dq_B_H, aligned_dq_W_E,
+                                               best_estimated_dq_H_E)
+    if config.visualize:
+      every_nth_element = args.plot_every_nth_pose
+      plot_poses(poses_B_H[:: every_nth_element], poses_W_H[:: every_nth_element],
+                 True, title="3D Poses After Alignment")
+
+    return (True, best_estimated_dq_H_E)
+  else:
+    return (False, None)
