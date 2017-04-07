@@ -203,17 +203,36 @@ def align(dq_W_E_vec, dq_B_H_vec, enforce_same_non_dual_scalar_sign=True, min_nu
     dq_W_E_vec_filtered = best_dq_W_E_vec_filtered
     dq_B_H_vec_filtered = best_dq_B_H_vec_filtered
 
-  for i in range(n_quaternions):
-    dq_W_E_i = dq_W_E_vec[i]
-    dq_B_H_i = dq_B_H_vec[i]
-    for j in range(i + 1, n_quaternions):
-      dq_W_E_j = dq_W_E_vec[j]
-      dq_B_H_j = dq_B_H_vec[j]
-      # get screw axis
-      # calculate dot product
-      # if dot product > threshold (0.9)
-      # remove poses
-      # check that there is enough poses in the end
+  n_quaternions = len(dq_W_E_vec_filtered)
+  print(n_quaternions)
+  dot_product_threshold = 0.98 # TODO(ntonci): Add to parameters
+  i = 0
+  while i < len(dq_W_E_vec_filtered):
+    dq_W_E_i = dq_W_E_vec_filtered[i]
+    dq_B_H_i = dq_B_H_vec_filtered[i]
+    screw_axis_W_E_i, rotation_W_E_i, translation_W_E_i = dq_W_E_i.screw_axis();
+    screw_axis_B_H_i, rotation_B_H_i, translation_B_H_i = dq_B_H_i.screw_axis();
+
+    # TODO(ntonci): Add a check for small motion
+
+    j = i+1
+    while j < len(dq_W_E_vec_filtered):
+      dq_W_E_j = dq_W_E_vec_filtered[j]
+      dq_B_H_j = dq_B_H_vec_filtered[j]
+      screw_axis_W_E_j, rotation_W_E_j, translation_W_E_j = dq_W_E_j.screw_axis();
+      screw_axis_B_H_j, rotation_B_H_j, translation_B_H_j = dq_B_H_j.screw_axis();
+
+      if (np.inner(screw_axis_W_E_i, screw_axis_W_E_j) > dot_product_threshold):
+        dq_W_E_vec_filtered.pop(j)
+        dq_B_H_vec_filtered.pop(j)
+      elif (np.inner(screw_axis_B_H_i, screw_axis_B_H_j) > dot_product_threshold):
+        dq_W_E_vec_filtered.pop(j)
+        dq_B_H_vec_filtered.pop(j)
+      else:
+        j += 1
+    i += 1
+
+  # TODO(ntonci): Check that there is enoguh poses in the end
 
   print("Best start idx: {}".format(best_idx))
   print("Removed {} outliers from the initial set of poses.".format(
