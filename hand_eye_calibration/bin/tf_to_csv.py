@@ -120,11 +120,11 @@ if __name__ == '__main__':
       '--tf_target_frame', required=True, help='Name of tf target frame.')
   parser.add_argument(
       '--csv_output_file', required=True, help='Path to output csv file')
-  parser.add_argument(
-      '--output_position_in_source_frame', default=True,
-      help='If enabled, the [x, y, z] position vector of the 3D pose will '
-      'be rotated, such that it represents the 3D position of the target '
-      'frame origin in the source frame coordinate system.')
+
+  parser.add_argument('--output_position_in_source_frame', type=bool, default=False,
+                      help='If enabled, the [x, y, z] position vector of the 3D pose will '
+                      'be rotated, such that it represents the 3D position of the target '
+                      'frame origin in the source frame coordinate system.')
 
   args = parser.parse_args()
 
