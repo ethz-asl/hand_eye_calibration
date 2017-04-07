@@ -124,7 +124,8 @@ if __name__ == "__main__":
     draw_poses(poses1[:: every_nth_element], poses_2_aligned_to_1[:: every_nth_element], True)
 
   # Evaluate alignment.
-  (rmse_position, rmse_orientation) = evaluate_alignment(poses1, poses_2_aligned_to_1)
+  (rmse_position, rmse_orientation) = evaluate_alignment(
+      poses1, poses_2_aligned_to_1, args.visualize)
 
   print("Alignment evaluation: RMSE position: {}m RMSE orientation: {}°".format(
       rmse_position, rmse_orientation))
