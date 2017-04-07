@@ -30,7 +30,7 @@ def introduce_data_drops(data, drop_config, set_to_none=False):
 
   current_num_datapoints_dropped = 0
   dropped_datapoints_set = set()
-  while(current_num_datapoints_dropped < overall_num_datapoints_to_drop):
+  while (current_num_datapoints_dropped < overall_num_datapoints_to_drop):
     remaining_datapoints_to_drop = overall_num_datapoints_to_drop - current_num_datapoints_dropped
 
     drop_start = randint(0, num_datapoints - 1)
