@@ -204,33 +204,46 @@ def align(dq_W_E_vec, dq_B_H_vec, enforce_same_non_dual_scalar_sign=True, min_nu
     dq_B_H_vec_filtered = best_dq_B_H_vec_filtered
 
   n_quaternions = len(dq_W_E_vec_filtered)
-  print(n_quaternions)
-  dot_product_threshold = 0.98 # TODO(ntonci): Add to parameters
+  dot_product_threshold = 0.95 # TODO(ntonci): Add to parameters
   i = 0
   while i < len(dq_W_E_vec_filtered):
     dq_W_E_i = dq_W_E_vec_filtered[i]
     dq_B_H_i = dq_B_H_vec_filtered[i]
-    screw_axis_W_E_i, rotation_W_E_i, translation_W_E_i = dq_W_E_i.screw_axis();
-    screw_axis_B_H_i, rotation_B_H_i, translation_B_H_i = dq_B_H_i.screw_axis();
+    screw_axis_W_E_i, rotation_W_E_i, translation_W_E_i = dq_W_E_i.screw_axis()
+    screw_axis_B_H_i, rotation_B_H_i, translation_B_H_i = dq_B_H_i.screw_axis()
 
-    # TODO(ntonci): Add a check for small motion
+    if (np.linalg.norm(screw_axis_W_E_i) == 0 or np.linalg.norm(screw_axis_B_H_i) == 0):
+      dq_W_E_vec_filtered.pop(i)
+      dq_B_H_vec_filtered.pop(i)
+    else:
+      screw_axis_W_E_i = screw_axis_W_E_i / np.linalg.norm(screw_axis_W_E_i)
+      screw_axis_B_H_i = screw_axis_B_H_i / np.linalg.norm(screw_axis_B_H_i)
 
-    j = i+1
-    while j < len(dq_W_E_vec_filtered):
-      dq_W_E_j = dq_W_E_vec_filtered[j]
-      dq_B_H_j = dq_B_H_vec_filtered[j]
-      screw_axis_W_E_j, rotation_W_E_j, translation_W_E_j = dq_W_E_j.screw_axis();
-      screw_axis_B_H_j, rotation_B_H_j, translation_B_H_j = dq_B_H_j.screw_axis();
+      # TODO(ntonci): Add a check for small motion
 
-      if (np.inner(screw_axis_W_E_i, screw_axis_W_E_j) > dot_product_threshold):
-        dq_W_E_vec_filtered.pop(j)
-        dq_B_H_vec_filtered.pop(j)
-      elif (np.inner(screw_axis_B_H_i, screw_axis_B_H_j) > dot_product_threshold):
-        dq_W_E_vec_filtered.pop(j)
-        dq_B_H_vec_filtered.pop(j)
-      else:
-        j += 1
-    i += 1
+      j = i+1
+      while j < len(dq_W_E_vec_filtered):
+        dq_W_E_j = dq_W_E_vec_filtered[j]
+        dq_B_H_j = dq_B_H_vec_filtered[j]
+        screw_axis_W_E_j, rotation_W_E_j, translation_W_E_j = dq_W_E_j.screw_axis()
+        screw_axis_B_H_j, rotation_B_H_j, translation_B_H_j = dq_B_H_j.screw_axis()
+
+        if (np.linalg.norm(screw_axis_W_E_j) == 0 or np.linalg.norm(screw_axis_B_H_j) == 0):
+          dq_W_E_vec_filtered.pop(j)
+          dq_B_H_vec_filtered.pop(j)
+        else:
+          screw_axis_W_E_j = screw_axis_W_E_j / np.linalg.norm(screw_axis_W_E_j)
+          screw_axis_B_H_j = screw_axis_B_H_j / np.linalg.norm(screw_axis_B_H_j)
+
+          if (np.inner(screw_axis_W_E_i, screw_axis_W_E_j) > dot_product_threshold):
+            dq_W_E_vec_filtered.pop(j)
+            dq_B_H_vec_filtered.pop(j)
+          elif (np.inner(screw_axis_B_H_i, screw_axis_B_H_j) > dot_product_threshold):
+            dq_W_E_vec_filtered.pop(j)
+            dq_B_H_vec_filtered.pop(j)
+          else:
+            j += 1
+      i += 1
 
   # TODO(ntonci): Check that there is enoguh poses in the end
 
