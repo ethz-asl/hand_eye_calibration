@@ -88,7 +88,7 @@ def write_transformation_to_csv_file(bag_file, target_frame, source_frame,
               tf_previous_timestamp = single_tf.header.stamp
               continue
 
-              # If the interval deviates from the frequency by more than x percent, print a warning.
+            # If the interval deviates from the frequency by more than x percent, print a warning.
             tf_interval_deviation_percent = abs(
                 tf_interval_estimated -
                 tf_interval_measured) / tf_interval_estimated * 100.
