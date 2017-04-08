@@ -155,7 +155,7 @@ def align(dq_W_E_vec, dq_B_H_vec, enforce_same_non_dual_scalar_sign=True, min_nu
   else:
     print("Search for first set of inliers bigger than {}...".format(min_num_inliers))
 
-  # 0. Reject pairs where scalar parts of dual quaternions do not match.
+  # 0.1 Reject pairs where scalar parts of dual quaternions do not match.
   # Loop over all the indices to find an index of a pose pair.
   for j in range(n_quaternions):
     # Re-align all dual quaternion to the j-th dual quaternion.
@@ -203,6 +203,8 @@ def align(dq_W_E_vec, dq_B_H_vec, enforce_same_non_dual_scalar_sign=True, min_nu
     dq_W_E_vec_filtered = best_dq_W_E_vec_filtered
     dq_B_H_vec_filtered = best_dq_B_H_vec_filtered
 
+  # 0.2 Reject pairs whose motion is not informative,
+  # i.e. their screw axis dot product is large
   n_quaternions = len(dq_W_E_vec_filtered)
   dot_product_threshold = 0.95 # TODO(ntonci): Add to parameters
   i = 0
