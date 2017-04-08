@@ -72,7 +72,8 @@ def plot_time_stamped_poses(title,
   plt.plot(time_stamped_poses_A[:, 7], c='c')
 
   a2 = plt.subplot(2, 2, 2)
-  a2.set_title("Position \nx [red], y [green], z [blue]", y=title_position)
+  a2.set_title(
+      "Position (eye coordinate frame) \nx [red], y [green], z [blue]", y=title_position)
   plt.plot(time_stamped_poses_A[:, 1], c='r')
   plt.plot(time_stamped_poses_A[:, 2], c='g')
   plt.plot(time_stamped_poses_A[:, 3], c='b')

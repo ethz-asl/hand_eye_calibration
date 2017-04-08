@@ -181,5 +181,7 @@ class DualQuaternionOperations(unittest.TestCase):
     npt.assert_allclose(matrix_out, matrix_out_2)
 
 
+# TODO(ntonci): Add test for screw_axis method
+
 if __name__ == '__main__':
   unittest.main()
