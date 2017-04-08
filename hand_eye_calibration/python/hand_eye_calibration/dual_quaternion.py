@@ -36,7 +36,7 @@ class DualQuaternion(object):
     self.assert_normalization()
 
   def __str__(self):
-    return np.str(self.dq)
+    return "[q_rot: {}, q_pos: {}]".format(np.str(self.q_rot), np.str(self.q_dual))
 
   def __repr__(self):
     return ("<Dual quaternion q_rot {} q_dual {}>").format(self.q_rot, self.q_dual)
