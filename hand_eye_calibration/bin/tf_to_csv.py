@@ -45,14 +45,18 @@ def write_transformation_to_csv_file(bag_file, target_frame, source_frame,
   for topic, msg, t in bag.read_messages():
     if topic == "/tf" and msg.transforms:
       for single_tf in msg.transforms:
+        # TODO(ff): Fix this logic, as if the source frame is child frame, we
+        # can't get this frame.
         if single_tf.child_frame_id == target_frame:
+          # if single_tf.header.frame_id == target_frame:
           try:
             (translation,
-             hamilton_quaternion) = tf_tree.lookupTransform(target_frame, source_frame,
-                                                            single_tf.header.stamp)
+             hamilton_quaternion) = tf_tree.lookupTransform(
+                 target_frame, source_frame, single_tf.header.stamp)
 
             if output_position_in_source_frame:
-              rot_mat = tf.transformations.quaternion_matrix(hamilton_quaternion)[:3, :3]
+              rot_mat = tf.transformations.quaternion_matrix(
+                  hamilton_quaternion)[:3, :3]
               translation = np.matmul(rot_mat.T, translation)
           except (tf.LookupException, tf.ConnectivityException,
                   tf.ExtrapolationException):
@@ -87,9 +91,11 @@ def write_transformation_to_csv_file(bag_file, target_frame, source_frame,
 
             # Check if there has been a drop.
             tf_interval_estimated = 1. / tf_frequency_estimated
-            tf_interval_measures = single_tf.header.stamp.to_sec() - tf_previous_timestamp.to_sec()
+            tf_interval_measures = (single_tf.header.stamp.to_sec() -
+                                    tf_previous_timestamp.to_sec())
 
-            # If the interval deviates from the frequency by more than x percent, print a warning.
+            # If the interval deviates from the frequency by more than x
+            # percent, print a warning.
             tf_interval_deviation_percent = abs(
                 tf_interval_estimated -
                 tf_interval_measures) / tf_interval_estimated * 100.
