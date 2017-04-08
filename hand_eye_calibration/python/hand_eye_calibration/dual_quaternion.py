@@ -217,14 +217,14 @@ class DualQuaternion(object):
   def screw_axis(self):
     """ The rotation, translation and screw axis from the dual quaternion. """
     rotation = 2. * np.degrees(np.arccos(self.q_rot.w))
-    rotation = np.mod(rotation, 360)
+    rotation = np.mod(rotation, 360.)
 
-    if (rotation > 0):
+    if (rotation > 1.e-12):
       translation = -2. * self.q_dual.w / np.sin(rotation / 2. * np.pi / 180.)
       screw_axis = self.q_rot.q[0:3] / np.sin(rotation / 2. * np.pi / 180.)
     else:
-      translation = 2. * np.sqrt(np.sum(np.power(self.q_dual.q[0:3], 2)))
-      if (translation > 0):
+      translation = 2. * np.sqrt(np.sum(np.power(self.q_dual.q[0:3], 2.)))
+      if (translation > 1.e-12):
         screw_axis = 2. * self.q_dual.q[0:3] / translation
       else:
         screw_axis = np.zeros(3)
