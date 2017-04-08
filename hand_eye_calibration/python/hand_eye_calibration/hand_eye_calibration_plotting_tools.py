@@ -71,7 +71,6 @@ def plot_poses(poses, additional_poses=None, plot_arrows=True, title=""):
 
   # Arrows are about 1% of the span of the trajectories.
   arrow_size = span_of_trajectories * 0.01
-  print("Plot arrows of size: {}m".format(arrow_size))
 
   for pose in poses_A:
     # Position point
