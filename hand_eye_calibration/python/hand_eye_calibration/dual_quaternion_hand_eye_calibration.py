@@ -214,7 +214,7 @@ def align(dq_W_E_vec, dq_B_H_vec, enforce_same_non_dual_scalar_sign=True, min_nu
     screw_axis_W_E_i, rotation_W_E_i, translation_W_E_i = dq_W_E_i.screw_axis()
     screw_axis_B_H_i, rotation_B_H_i, translation_B_H_i = dq_B_H_i.screw_axis()
 
-    if (np.linalg.norm(screw_axis_W_E_i) <=1.e-12 or np.linalg.norm(screw_axis_B_H_i) <=1.e-12):
+    if (np.linalg.norm(screw_axis_W_E_i) <= 1.e-12 or np.linalg.norm(screw_axis_B_H_i) <= 1.e-12):
       dq_W_E_vec_filtered.pop(i)
       dq_B_H_vec_filtered.pop(i)
     else:
@@ -230,7 +230,7 @@ def align(dq_W_E_vec, dq_B_H_vec, enforce_same_non_dual_scalar_sign=True, min_nu
         screw_axis_W_E_j, rotation_W_E_j, translation_W_E_j = dq_W_E_j.screw_axis()
         screw_axis_B_H_j, rotation_B_H_j, translation_B_H_j = dq_B_H_j.screw_axis()
 
-        if (np.linalg.norm(screw_axis_W_E_j) <=1.e-12 or np.linalg.norm(screw_axis_B_H_j) <=1.e-12):
+        if (np.linalg.norm(screw_axis_W_E_j) <= 1.e-12 or np.linalg.norm(screw_axis_B_H_j) <= 1.e-12):
           dq_W_E_vec_filtered.pop(j)
           dq_B_H_vec_filtered.pop(j)
         else:
@@ -247,7 +247,7 @@ def align(dq_W_E_vec, dq_B_H_vec, enforce_same_non_dual_scalar_sign=True, min_nu
             j += 1
       i += 1
 
-  assert i < 2, "Not enough inliers found."
+  assert i >= 2, "Not enough inliers found."
 
   print("Best start idx: {}".format(best_idx))
   print("Removed {} outliers from the initial set of poses.".format(
