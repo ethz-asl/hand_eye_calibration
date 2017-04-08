@@ -126,7 +126,7 @@ if __name__ == '__main__':
   parser.add_argument(
       '--csv_output_file', required=True, help='Path to output csv file')
 
-  parser.add_argument('--output_position_in_source_frame', type=bool, default=False,
+  parser.add_argument('--output_position_in_source_frame', type=bool, default=True,
                       help='If enabled, the [x, y, z] position vector of the 3D pose will '
                       'be rotated, such that it represents the 3D position of the target '
                       'frame origin in the source frame coordinate system.')
