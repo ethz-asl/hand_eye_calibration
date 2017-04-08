@@ -21,7 +21,7 @@ class FilteringConfig:
 
 
 def filter_and_smooth_angular_velocity(angular_velocity,
-                                       low_pass_kernel_size, clip_percentile):
+                                       low_pass_kernel_size, clip_percentile, plot=False):
   """Reduce the noise in a velocity signal."""
 
   max_value = np.percentile(angular_velocity, clip_percentile)
@@ -37,8 +37,9 @@ def filter_and_smooth_angular_velocity(angular_velocity,
 
   print("Done smoothing angular velocity norms...")
 
-  plot_angular_velocities("Angular Velocities", angular_velocity,
-                          angular_velocity_smoothed, True)
+  if plot:
+    plot_angular_velocities("Angular Velocities", angular_velocity,
+                            angular_velocity_smoothed, True)
 
   return angular_velocity_smoothed.copy()
 
@@ -99,7 +100,7 @@ def resample_quaternions(times, quaternions, dt):
           samples)
 
 
-def compute_angular_velocity_norms(quaternions, samples, smoothing_kernel_size, clipping_percentile):
+def compute_angular_velocity_norms(quaternions, samples, smoothing_kernel_size, clipping_percentile, plot=False):
   angular_velocity_norms = []
   angular_velocity_size = (len(quaternions) - 1)
   angular_velocity = np.zeros((angular_velocity_size, 3))
@@ -108,7 +109,7 @@ def compute_angular_velocity_norms(quaternions, samples, smoothing_kernel_size, 
         quaternions[i], quaternions[i + 1], samples[i + 1] - samples[i])
 
   angular_velocity_filtered = filter_and_smooth_angular_velocity(
-      angular_velocity, smoothing_kernel_size, clipping_percentile)
+      angular_velocity, smoothing_kernel_size, clipping_percentile, plot)
 
   for i in range(0, angular_velocity_size):
     angular_velocity_norms.append(
@@ -118,7 +119,7 @@ def compute_angular_velocity_norms(quaternions, samples, smoothing_kernel_size, 
   return angular_velocity_norms
 
 
-def calculate_time_offset(times_A, quaternions_A, times_B, quaternions_B, filtering_config):
+def calculate_time_offset(times_A, quaternions_A, times_B, quaternions_B, filtering_config, plot=False):
   """
   Calculate the time offset between the stamped quaternions_A and quaternions_B.
 
@@ -149,27 +150,28 @@ def calculate_time_offset(times_A, quaternions_A, times_B, quaternions_B, filter
   angular_velocity_norms_A = compute_angular_velocity_norms(
       quaternions_A_interp, samples_A,
       filtering_config.smoothing_kernel_size_A,
-      filtering_config.clipping_percentile_A)
+      filtering_config.clipping_percentile_A, plot)
   angular_velocity_norms_B = compute_angular_velocity_norms(
       quaternions_B_interp, samples_B,
       filtering_config.smoothing_kernel_size_B,
-      filtering_config.clipping_percentile_B)
+      filtering_config.clipping_percentile_B, plot)
 
   # Adapt samples to filtered data.
   samples_A = samples_A[:len(angular_velocity_norms_A)]
   samples_B = samples_B[:len(angular_velocity_norms_B)]
 
   # Plot the intput as it goes through the interpolation and filtering.
-  plot_input_data(quaternions_A, quaternions_B, quaternions_A_interp,
-                  quaternions_B_interp, angular_velocity_norms_A,
-                  angular_velocity_norms_B,
-                  angular_velocity_norms_A,
-                  angular_velocity_norms_B, False)
+  if plot:
+    plot_input_data(quaternions_A, quaternions_B, quaternions_A_interp,
+                    quaternions_B_interp, angular_velocity_norms_A,
+                    angular_velocity_norms_B,
+                    angular_velocity_norms_A,
+                    angular_velocity_norms_B, False)
 
   # Comput time offset.
   time_offset = calculate_time_offset_from_signals(
       samples_A, angular_velocity_norms_A, samples_B,
-      angular_velocity_norms_B, True, True)
+      angular_velocity_norms_B, plot, True)
 
   return time_offset
 

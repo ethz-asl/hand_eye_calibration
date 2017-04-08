@@ -12,11 +12,6 @@ from hand_eye_calibration.dual_quaternion_hand_eye_calibration import (
     align_paths_at_index, evaluate_alignment, HandEyeConfig)
 from hand_eye_calibration.hand_eye_calibration_plotting_tools import plot_poses
 
-# CONFIG
-paths_start_at_origin = True
-enforce_same_non_dual_scalar_sign = True
-enforce_positive_non_dual_scalar_sign = True
-
 if __name__ == "__main__":
   parser = argparse.ArgumentParser(description='Align pairs of poses.')
   parser.add_argument(
@@ -100,7 +95,7 @@ if __name__ == "__main__":
   hand_eye_config.visualize = args.visualize
   hand_eye_config.visualize_plot_every_nth_pose = args.plot_every_nth_pose
   # self.ransac_inlier_classification = "scalar_part_equality"
-  self.ransac_inlier_classification = "rmse_threshold"
+  # hand_eye_config.ransac_inlier_classification = "rmse_threshold"
 
   compute_hand_eye_calibration_RANSAC(dual_quat_B_H_vec, dual_quat_W_E_vec,
                                       hand_eye_config)

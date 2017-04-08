@@ -11,6 +11,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import random
 import tf
+import timeit
 
 from hand_eye_calibration.dual_quaternion import DualQuaternion
 from hand_eye_calibration.quaternion import (Quaternion, angle_between_quaternions)
@@ -377,11 +378,15 @@ def get_aligned_poses(dq_B_H_vec, dq_W_E_vec, dq_H_E_estimated):
 def compute_hand_eye_calibration_RANSAC(dq_B_H_vec, dq_W_E_vec, config):
   assert len(dq_W_E_vec) == len(dq_B_H_vec)
 
-  full_iterations = 0
-  prerejected_samples = 0
+  start_time = timeit.default_timer()
 
   num_poses = len(dq_W_E_vec)
-  indices_set = set(range(0, num_poses))
+
+  # TODO(mfehr): put toncis stuff here.
+  num_poses_after_filtering = num_poses
+  # REMOVE LINE ABOVE
+
+  indices_set = set(range(0, num_poses_after_filtering))
 
   # Result variables:
   best_inlier_idx_set = None
@@ -401,6 +406,8 @@ def compute_hand_eye_calibration_RANSAC(dq_B_H_vec, dq_W_E_vec, config):
         max_number_samples))
 
   sample_number = 0
+  full_iterations = 0
+  prerejected_samples = 0
   while (full_iterations < config.ransac_max_number_iterations or
          config.ransac_enable_exhaustive_search or
          not (sample_number < max_number_samples)):
@@ -473,8 +480,8 @@ def compute_hand_eye_calibration_RANSAC(dq_B_H_vec, dq_W_E_vec, config):
     elif config.ransac_inlier_classification == "scalar_part_equality":
       # Inliers are determined without computing an initial model but by simply
       # selecting all poses that have a matching scalar part.
-      inlier_flags = [False] * num_poses
-      for i in range(0, num_poses):
+      inlier_flags = [False] * num_poses_after_filtering
+      for i in range(0, num_poses_after_filtering):
         scalar_parts_B_H = aligned_dq_B_H[i].scalar()
         scalar_parts_W_E = aligned_dq_W_E[i].scalar()
         if np.allclose(scalar_parts_W_E.dq, scalar_parts_B_H.dq,
@@ -567,7 +574,10 @@ def compute_hand_eye_calibration_RANSAC(dq_B_H_vec, dq_W_E_vec, config):
 
   if best_estimated_dq_H_E is None:
     print("!!! RANSAC couldn't find a solution !!!")
-    return (False, None)
+    end_time = timeit.default_timer()
+    runtime = end_time - start_time
+    return (False, None, (best_rmse_position, best_rmse_orientation),
+            best_num_inliers, num_poses_after_filtering, runtime)
 
   # Visualize best alignment.
   if config.visualize:
@@ -598,4 +608,9 @@ def compute_hand_eye_calibration_RANSAC(dq_B_H_vec, dq_W_E_vec, config):
             sample_indices, best_num_inliers, best_rmse_position,
             best_rmse_orientation, dq_H_E_initial, dq_H_E_refined,
             np.linalg.norm(pose_vec[0:3])))
-  return (True, best_estimated_dq_H_E)
+
+  end_time = timeit.default_timer()
+  runtime = end_time - start_time
+
+  return (True, best_estimated_dq_H_E, (best_rmse_position, best_rmse_orientation),
+          best_num_inliers, num_poses_after_filtering, runtime)

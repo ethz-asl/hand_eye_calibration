@@ -37,7 +37,7 @@ def plot_poses(poses, additional_poses=None, plot_arrows=True, title=""):
   # Tranform position from device into world frame.
   for pose in poses_A:
     quaternion = Quaternion(q=pose[3:7])
-    pose[0:3] = quaternion.rotate_vector(pose[0:3])
+    #pose[0:3] = quaternion.rotate_vector(pose[0:3])
 
   # Compute dimensions for visualization and legend.
   min_A = np.amin(poses_A[:, 0:3])
@@ -55,7 +55,7 @@ def plot_poses(poses, additional_poses=None, plot_arrows=True, title=""):
     if poses_B is not None:
       for pose in poses_B:
         quaternion = Quaternion(q=pose[3:7])
-        pose[0:3] = quaternion.rotate_vector(pose[0:3])
+        # pose[0:3] = quaternion.rotate_vector(pose[0:3])
 
     # Compute dimensions for visualization and legend.
     min_B = np.amin(poses_B[:, 0:3])
