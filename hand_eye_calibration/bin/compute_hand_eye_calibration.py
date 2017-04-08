@@ -99,6 +99,8 @@ if __name__ == "__main__":
   hand_eye_config = HandEyeConfig()
   hand_eye_config.visualize = args.visualize
   hand_eye_config.visualize_plot_every_nth_pose = args.plot_every_nth_pose
+  # self.ransac_inlier_classification = "scalar_part_equality"
+  self.ransac_inlier_classification = "rmse_threshold"
 
   compute_hand_eye_calibration_RANSAC(dual_quat_B_H_vec, dual_quat_W_E_vec,
                                       hand_eye_config)
