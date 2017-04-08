@@ -1,10 +1,11 @@
 # -*- coding: utf-8 -*-
 
+from itertools import compress
 from matplotlib.patches import FancyArrowPatch
 from mpl_toolkits.mplot3d import proj3d
 
-
 import copy
+import itertools
 import math
 import matplotlib.pyplot as plt
 import numpy as np
@@ -48,15 +49,31 @@ from hand_eye_calibration.hand_eye_calibration_plotting_tools import (
 class HandEyeConfig:
 
   def __init__(self):
-    self.ransac_max_number_iterations = 1000
+
+    # RANSAC
+    self.ransac_sample_size = 3
     self.ransac_sample_rejection_scalar_part_equality_tolerance = 1e-2
-    self.ransac_sample_size = 10
-    self.ransac_evaluation_method = "sample_hand_eye_calibration"
-    self.ransac_rmse_position_threshold = 0.1
-    self.ransac_rmse_orientation_threshold = 5.0
+    self.ransac_enable_exhaustive_search = False
+    self.ransac_max_number_iterations = 20
+    self.ransac_enable_early_abort = True
+    self.ransac_outlier_probability = 0.5
+    self.ransac_success_probability_threshold = 0.99
 
-    self.hand_eye_calibration_rejection_scalar_part_equality_tolerance = 4e-2
+    # Inlier/Outlier detection
+    # self.ransac_inlier_classification = "rmse_threshold"
+    self.ransac_inlier_classification = "scalar_part_equality"
+    self.ransac_position_error_threshold_m = 0.1
+    self.ransac_orientation_error_threshold_deg = 5.0
+    self.ransac_min_num_inliers = 10
 
+    # Model refinement
+    self.ransac_model_refinement = True
+    self.ransac_evaluate_refined_model_on_inliers_only = False
+
+    # Hand-calibration
+    self.hand_eye_calibration_scalar_part_equality_tolerance = 4e-2
+
+    # Visualization
     self.visualize = False
     self.visualize_plot_every_nth_pose = 10
 
@@ -200,7 +217,7 @@ def compute_hand_eye_calibration(dq_B_H_vec_inliers, dq_W_E_vec_inliers, scalar_
   # Compute SVD of T and check if only two singular values are almost equal to
   # zero. Take the corresponding right-singular vectors (v_7 and v_8)
   U, s, V = np.linalg.svd(t_matrix)
-  print("singular values: {}".format(s))
+  # print("singular values: {}".format(s))
 
   # Check if only the last two singular values are almost zero.
   # for i, singular_value in enumerate(s):
@@ -266,20 +283,23 @@ def compute_hand_eye_calibration(dq_B_H_vec_inliers, dq_W_E_vec_inliers, scalar_
   return dq_H_E
 
 
-def evaluate_alignment(poses_A, poses_B, visualize=False):
+def evaluate_alignment(poses_A, poses_B, config, visualize=False):
   assert np.array_equal(poses_A.shape, poses_B.shape), (
       "Two pose vector of different size cannot be evaluated. "
       "Size pose A: {} Size pose B: {}".format(poses_A.shape, poses_B.shape))
   assert poses_A.shape[1] == 7, "poses_A are not valid poses!"
   assert poses_B.shape[1] == 7, "poses_B are not valid poses!"
+  assert isinstance(config, HandEyeConfig)
 
   num_poses = poses_A.shape[0]
+
+  inlier_list = [False] * num_poses
 
   errors_position = np.zeros((num_poses, 1))
   errors_orientation = np.zeros((num_poses, 1))
   for i in range(0, num_poses):
     # Sum up the squared norm of the pose error.
-    errors_position[i] = np.linalg.norm(poses_A[i, 0:3] - poses_B[i, 0:3], ord=2)
+    error_position = np.linalg.norm(poses_A[i, 0:3] - poses_B[i, 0:3], ord=2)
 
     # Construct quaternions to compare.
     quaternion_A = Quaternion(q=poses_A[i, 3:7])
@@ -297,6 +317,12 @@ def evaluate_alignment(poses_A, poses_B, visualize=False):
     error_angle_degrees = math.degrees(error_angle_rad)
     if error_angle_degrees > 180.0:
       error_angle_degrees = math.fabs(360.0 - error_angle_degrees)
+
+    if (error_angle_degrees < config.ransac_orientation_error_threshold_deg and
+            error_position < config.ransac_position_error_threshold_m):
+      inlier_list[i] = True
+
+    errors_position[i] = error_position
     errors_orientation[i] = error_angle_degrees
 
   rmse_pose_accumulator = np.sum(np.square(errors_position))
@@ -311,7 +337,7 @@ def evaluate_alignment(poses_A, poses_B, visualize=False):
     plot_alignment_errors(errors_position, rmse_pose,
                           errors_orientation, rmse_orientation)
 
-  return (rmse_pose, rmse_orientation)
+  return (rmse_pose, rmse_orientation, inlier_list)
 
 
 def get_aligned_poses(dq_B_H_vec, dq_W_E_vec, dq_H_E_estimated):
@@ -364,10 +390,31 @@ def compute_hand_eye_calibration_RANSAC(dq_B_H_vec, dq_W_E_vec, config):
   best_rmse_orientation = np.inf
   best_estimated_dq_H_E = None
 
-  print("Running RANSAC...")
-  while full_iterations < config.ransac_max_number_iterations:
-    sample_indices = random.sample(indices_set, config.ransac_sample_size)
+  all_sample_combinations = []
+  max_number_samples = np.inf
+  if not config.ransac_enable_exhaustive_search:
+    print("Running RANSAC...")
+  else:
+    all_sample_combinations = list(itertools.combinations(indices_set, config.ransac_sample_size))
+    max_number_samples = len(all_sample_combinations)
+    print("Running exhaustive search, exploring {} sample combinations...".format(
+        max_number_samples))
 
+  sample_number = 0
+  while (full_iterations < config.ransac_max_number_iterations or
+         config.ransac_enable_exhaustive_search or
+         not (sample_number < max_number_samples)):
+
+    # Get sample, either at:
+    #  - random (RANSAC)
+    #  - from the list of all possible samples (exhaustive search)
+    if config.ransac_enable_exhaustive_search:
+      sample_indices = list(all_sample_combinations[sample_number])
+    else:
+      sample_indices = random.sample(indices_set, config.ransac_sample_size)
+    sample_number += 1
+
+    # Extract sampled poses.
     samples_dq_W_E = [dq_W_E_vec[idx] for idx in sample_indices]
     samples_dq_B_H = [dq_B_H_vec[idx] for idx in sample_indices]
     assert len(samples_dq_W_E) == len(samples_dq_B_H)
@@ -380,8 +427,9 @@ def compute_hand_eye_calibration_RANSAC(dq_B_H_vec, dq_W_E_vec, config):
                                                   align_index=0)
     assert len(aligned_samples_dq_B_H) == len(aligned_samples_dq_W_E)
 
-    # Reject the sample early if not even the samples have a similar scalar part.
-    # This should speed up RANSAC.
+    # Reject the sample early if not even the samples have a
+    # similar scalar part. This should speed up RANSAC and is required, as
+    # the hand eye calibration does not accept outliers.
     good_sample = True
     for i in range(0, config.ransac_sample_size):
       scalar_parts_W_E = aligned_samples_dq_W_E[i].scalar()
@@ -395,138 +443,159 @@ def compute_hand_eye_calibration_RANSAC(dq_B_H_vec, dq_W_E_vec, config):
     if not good_sample:
       continue
 
-    # Transform all poses such that the pose at the first sample index becomes the origin.
-
-    print("Align all poses at index: {}".format(sample_indices[0]))
+    # Transform all poses based on the first sample pose and rearange poses,
+    # such that the first sample pose is the first pose.
     aligned_dq_B_H = align_paths_at_index(dq_B_H_vec, sample_indices[0])
     aligned_dq_W_E = align_paths_at_index(dq_W_E_vec, sample_indices[0])
 
-    # Evaluate the sample.
-    dq_H_E_estimated = None
-    if config.ransac_evaluation_method == "sample_hand_eye_calibration":
-
-      # Compute hand-eye calibration on SAMPLES only.
-      dq_H_E_estimated = compute_hand_eye_calibration(
+    # Compute model and determine inliers
+    dq_H_E_initial = None
+    num_inliers = 0
+    inlier_dq_B_H = []
+    inlier_dq_W_E = []
+    if config.ransac_inlier_classification == "rmse_threshold":
+      # Compute initial hand-eye calibration on SAMPLES only.
+      dq_H_E_initial = compute_hand_eye_calibration(
           aligned_samples_dq_B_H, aligned_samples_dq_W_E,
-          config.hand_eye_calibration_rejection_scalar_part_equality_tolerance)
-      dq_H_E_estimated.normalize()
+          config.hand_eye_calibration_scalar_part_equality_tolerance)
+      dq_H_E_initial.normalize()
 
-    elif config.ransac_evaluation_method == "scalar_part_equality":
-      assert False, "Needs implementing!"
-      inlier_dq_B_H = []
-      inlier_dq_W_E = []
+      # Inliers are determined by evaluating the hand-eye calibration computed
+      # based on the samples on all the poses and thresholding the RMSE of the
+      # position/orientation.
+      (poses_B_H, poses_W_H) = get_aligned_poses(aligned_dq_B_H,
+                                                 aligned_dq_W_E,
+                                                 dq_H_E_initial)
+      (rmse_position,
+       rmse_orientation,
+       inlier_flags) = evaluate_alignment(poses_B_H, poses_W_H, config)
 
-      num_inliers = 0
+    elif config.ransac_inlier_classification == "scalar_part_equality":
+      # Inliers are determined without computing an initial model but by simply
+      # selecting all poses that have a matching scalar part.
+      inlier_flags = [False] * num_poses
       for i in range(0, num_poses):
         scalar_parts_B_H = aligned_dq_B_H[i].scalar()
         scalar_parts_W_E = aligned_dq_W_E[i].scalar()
         if np.allclose(scalar_parts_W_E.dq, scalar_parts_B_H.dq,
                        atol=config.ransac_sample_rejection_scalar_part_equality_tolerance):
-          num_inliers += 1
-          inlier_dq_B_H.append(aligned_dq_B_H[i])
-          inlier_dq_W_E.append(aligned_dq_W_E[i])
+          inlier_flags[i] = True
 
-      # Compute hand-eye calibration on the INLIERS only.
-      dq_H_E_estimated = compute_hand_eye_calibration(
-          inlier_dq_B_H, inlier_dq_W_E,
-          config.hand_eye_calibration_rejection_scalar_part_equality_tolerance)
-      dq_H_E_estimated.normalize()
-
-    elif config.ransac_evaluation_method == "full_hand_eye_calibration":
-      assert False, "Needs fixing!"
-      # Compute hand-eye calibration on ALL POSES.
-      dq_H_E_estimated = compute_hand_eye_calibration(
-          aligned_dq_B_H, aligned_dq_W_E,
-          config.hand_eye_calibration_rejection_scalar_part_equality_tolerance)
-      dq_H_E_estimated.normalize()
-
-    assert dq_H_E_estimated is not None
-
-    # Evaluate hand eye evaluation for all poses.
-    (poses_B_H, poses_W_H) = get_aligned_poses(
-        aligned_dq_B_H, aligned_dq_W_E, dq_H_E_estimated)
-    (rmse_position, rmse_orientation) = evaluate_alignment(poses_B_H, poses_W_H)
-
-    if rmse_position < best_rmse_position and rmse_orientation < best_rmse_orientation:
-      best_estimated_dq_H_E = dq_H_E_estimated
-      best_rmse_position = rmse_position
-      best_rmse_orientation = rmse_orientation
-      best_inlier_idx_set = sample_indices
-
-      print("Found a new best sample:\n\t\tRMSE position:    {:10.4f}\n\t\tRMSE orientation: {:10.4f}".format(
-          best_rmse_position, best_rmse_orientation))
     else:
-      print("Rejected sample:\n\t\tRMSE position:    {:10.4f}\n\t\tRMSE orientation: {:10.4f}\n\t\tdq_H_E: {}".format(
-          rmse_position, rmse_orientation, dq_H_E_estimated))
-      print("===> Reject sample based on hand-eye calibration evaluation.\n")
+      assert False, "Unkown ransac inlier classification."
+
+    # Filter poses based on inlier flags.
+    inlier_dq_B_H = list(compress(aligned_dq_B_H, inlier_flags))
+    inlier_dq_W_E = list(compress(aligned_dq_W_E, inlier_flags))
+    assert len(inlier_dq_B_H) == len(inlier_dq_W_E)
+    num_inliers = len(inlier_dq_B_H)
+
+    # Reject sample if not enough inliers.
+    if num_inliers < config.ransac_min_num_inliers:
+      print("==> Not enough inliers ({})".format(num_inliers))
+      continue
+
+    if (config.ransac_model_refinement or dq_H_E_initial is None):
+        # Refine hand-calibration using all inliers.
+      dq_H_E_refined = compute_hand_eye_calibration(
+          inlier_dq_B_H, inlier_dq_W_E,
+          config.hand_eye_calibration_scalar_part_equality_tolerance)
+      dq_H_E_refined.normalize()
+    else:
+      assert dq_H_E_initial is not None
+      dq_H_E_refined = dq_H_E_initial
+
+    # Rerun evaluation to determine the RMSE for the refined
+    # hand-eye calibration.
+    if config.ransac_evaluate_refined_model_on_inliers_only:
+      (poses_B_H, poses_W_H) = get_aligned_poses(inlier_dq_B_H,
+                                                 inlier_dq_W_E,
+                                                 dq_H_E_refined)
+    else:
+      (poses_B_H, poses_W_H) = get_aligned_poses(aligned_dq_B_H,
+                                                 aligned_dq_W_E,
+                                                 dq_H_E_refined)
+
+    (rmse_position_refined,
+     rmse_orientation_refined,
+     inlier_flags) = evaluate_alignment(poses_B_H, poses_W_H, config)
+
+    if (rmse_position_refined < best_rmse_position and
+            rmse_orientation_refined < best_rmse_orientation):
+      best_estimated_dq_H_E = dq_H_E_refined
+      best_rmse_position = rmse_position_refined
+      best_rmse_orientation = rmse_orientation_refined
+      best_inlier_idx_set = sample_indices
+      best_num_inliers = num_inliers
+
+      print("Found a new best sample: {}\n"
+            "\t\tNumber of inliers: {}\n"
+            "\t\tRMSE position:     {:10.4f}\n"
+            "\t\tRMSE orientation:  {:10.4f}\n"
+            "\t\tdq_H_E_initial:    {}\n"
+            "\t\tdq_H_E_refined:    {}".format(
+                sample_indices, num_inliers, rmse_position_refined,
+                rmse_orientation_refined, dq_H_E_initial, dq_H_E_refined))
+    else:
+      print("Rejected sample: {}\n"
+            "\t\tNumber of inliers: {}\n"
+            "\t\tRMSE position:     {:10.4f}\n"
+            "\t\tRMSE orientation:  {:10.4f}".format(
+                sample_indices, num_inliers, rmse_position_refined,
+                rmse_orientation_refined))
 
     full_iterations += 1
 
-  print("Finished RANSAC.")
-  print("\t\tRANSAC iterations: {}".format(full_iterations))
-  print("\t\tRANSAC prerejected samples: {}".format(prerejected_samples))
-  print("\t\tRMSE position: {}".format(best_rmse_position))
-  print("\t\tRMSE orientation: {}".format(best_rmse_orientation))
+    # Abort RANSAC early based on prior about the outlier probability.
+    if (not config.ransac_enable_exhaustive_search and config.ransac_enable_early_abort):
+      s = config.ransac_sample_size
+      w = (1 - config.ransac_outlier_probability)  # Inlier probability
+      w_pow_s = w ** s
+      required_iterations = (math.log(1 - config.ransac_success_probability_threshold) /
+                             math.log(1 - w_pow_s))
+      if (full_iterations > required_iterations):
+        print("Reached a {}% probability that RANSAC succeeded in finding a sample "
+              "containing only inliers, aborting ...".format(
+                  config.ransac_success_probability_threshold * 100))
+        break
+  if not config.ransac_enable_exhaustive_search:
+    print("Finished RANSAC.")
+    print("RANSAC iterations: {}".format(full_iterations))
+    print("RANSAC early rejected samples: {}".format(prerejected_samples))
+  else:
+    print("Finished exhaustive search!")
 
   if best_estimated_dq_H_E is None:
     print("!!! RANSAC couldn't find a solution !!!")
     return (False, None)
 
-  # Evaluate quality of the best inliers found:
-  if config.ransac_evaluation_method == "sample_hand_eye_calibration":
-    if(best_rmse_position < config.ransac_rmse_position_threshold and
-       best_rmse_orientation < config.ransac_rmse_orientation_threshold):
-      print("Hand-eye calibration successful:")
-      print("\t\tSample indices (used for the hand-eye calibration): {}".format(best_inlier_idx_set))
-      print("\t\tSample used for alignment: {}".format(best_inlier_idx_set[0]))
-      print("\t\tRMSE position: {}".format(best_rmse_position))
-      print("\t\tRMSE orientation: {}".format(best_rmse_orientation))
-      print("\t\tdq_H_E: {}".format(best_estimated_dq_H_E))
-      print("\t\tT_H_E: {}".format(best_estimated_dq_H_E.to_matrix()))
-      pose_vec = best_estimated_dq_H_E.to_pose()
-      print("\t\tTranslation norm: {}".format(np.linalg.norm(pose_vec[0:3])))
+  # Visualize best alignment.
+  if config.visualize:
+    aligned_dq_W_E = align_paths_at_index(dq_W_E_vec)
+    aligned_dq_B_H = align_paths_at_index(dq_B_H_vec)
 
-      success = True
-    else:
-      print("Solution rejected!")
-      success = False
-
-  elif config.ransac_evaluation_method == "scalar_part_equality":
-    # Transform all poses such that the pose at the first sample index becomes the origin.
-
-    # TODO(mfehr): Implement!
-
-    return (False, None)
-
-  elif config.ransac_evaluation_method == "full_hand_eye_calibration":
-    if(best_rmse_position < config.ransac_rmse_position_threshold and
-       best_rmse_orientation < config.ransac_rmse_orientation_threshold):
-      print("Hand-eye calibration successful:")
-      print("\t\tSample indices (used for sample rejection only): {}".format(best_inlier_idx_set))
-      print("\t\tSample used for alignment: {}".format(best_inlier_idx_set[0]))
-      print("\t\tRMSE position: {}".format(best_rmse_position))
-      print("\t\tRMSE orientation: {}".format(best_rmse_orientation))
-      print("\t\tdq_H_E: {}".format(best_estimated_dq_H_E))
-      print("\t\tT_H_E: {}".format(best_estimated_dq_H_E.to_matrix()))
-      pose_vec = best_estimated_dq_H_E.to_pose()
-      print("\t\tTranslation norm: {}".format(np.linalg.norm(pose_vec[0:3])))
-      success = True
-      return (True, best_estimated_dq_H_E)
-    else:
-      print("Solution rejected!")
-      success = False
-
-  if success:
-    aligned_dq_W_E = align_paths_at_index(dq_W_E_vec, best_inlier_idx_set[0])
-    aligned_dq_B_H = align_paths_at_index(dq_B_H_vec, best_inlier_idx_set[0])
-
-    (poses_B_H, poses_W_H) = get_aligned_poses(aligned_dq_B_H, aligned_dq_W_E,
+    (poses_B_H, poses_W_H) = get_aligned_poses(aligned_dq_B_H,
+                                               aligned_dq_W_E,
                                                best_estimated_dq_H_E)
-    if config.visualize:
-      every_nth_element = args.plot_every_nth_pose
-      plot_poses(poses_B_H[:: every_nth_element], poses_W_H[:: every_nth_element],
-                 True, title="3D Poses After Alignment")
+    (rmse_position_all,
+     rmse_orientation_all,
+     inlier_flags) = evaluate_alignment(
+        poses_B_H, poses_W_H, config)
 
-    return (True, best_estimated_dq_H_E)
-  else:
-    return (False, None)
+    every_nth_element = config.visualize_plot_every_nth_pose
+    plot_poses(poses_B_H[:: every_nth_element],
+               poses_W_H[:: every_nth_element],
+               True, title="3D Poses After Alignment")
+
+  pose_vec = best_estimated_dq_H_E.to_pose()
+  print("Solution found with sample: {}\n"
+        "\t\tNumber of inliers: {}\n"
+        "\t\tRMSE position:     {:10.4f}\n"
+        "\t\tRMSE orientation:  {:10.4f}\n"
+        "\t\tdq_H_E_initial:    {}\n"
+        "\t\tdq_H_E_refined:    {}\n"
+        "\t\tTranslation norm:  {:10.4f}".format(
+            sample_indices, best_num_inliers, best_rmse_position,
+            best_rmse_orientation, dq_H_E_initial, dq_H_E_refined,
+            np.linalg.norm(pose_vec[0:3])))
+  return (True, best_estimated_dq_H_E)
