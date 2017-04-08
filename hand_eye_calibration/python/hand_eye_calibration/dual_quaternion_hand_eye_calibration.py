@@ -245,7 +245,8 @@ def align(dq_W_E_vec, dq_B_H_vec, enforce_same_non_dual_scalar_sign=True, min_nu
             j += 1
       i += 1
 
-  # TODO(ntonci): Check that there is enoguh poses in the end
+  if (i < 3):
+    assert False, "Not enough inliers found."
 
   print("Best start idx: {}".format(best_idx))
   print("Removed {} outliers from the initial set of poses.".format(
