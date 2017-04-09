@@ -108,10 +108,10 @@ if __name__ == "__main__":
   if hand_eye_config.use_baseline_approach:
     (success, dq_H_E, rmse,
      num_inliers, num_poses_kept,
-     runtime) = compute_hand_eye_calibration_BASELINE(
+     runtime, singular_values, bad_singular_values) = compute_hand_eye_calibration_BASELINE(
         dual_quat_B_H_vec, dual_quat_W_E_vec, hand_eye_config)
   else:
     (success, dq_H_E, rmse,
      num_inliers, num_poses_kept,
-     runtime) = compute_hand_eye_calibration_RANSAC(
+     runtime, singular_values, bad_singular_values) = compute_hand_eye_calibration_RANSAC(
         dual_quat_B_H_vec, dual_quat_W_E_vec, hand_eye_config)
