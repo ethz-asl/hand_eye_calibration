@@ -4,10 +4,11 @@ import logging
 
 
 class DataDropConfig:
+  overall_drop_percentage = 20.0
+  max_percentage_for_single_drop = 20.0
 
   def __init__(self):
-    self.overall_drop_percentage = 20.0
-    self.max_percentage_for_single_drop = 20.0
+    pass
 
 
 def introduce_data_drops(data, drop_config, set_to_none=False):
