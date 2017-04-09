@@ -1,0 +1,23 @@
+distortion:
+  parameters:
+    rows: 4
+    cols: 1
+    data:
+      - 0.0029918175312379346
+      - -0.013205766761967238
+      - 0.04635636367896777
+      - -0.02583917949248539
+  type: equidistant
+type: pinhole
+label: cam0
+line-delay-nanoseconds: 0
+image_width: 640
+image_height: 480
+intrinsics:
+  rows: 4
+  cols: 1
+  data:
+    - 277.4304915579816
+    - 312.73897128312353
+    - 277.19813180794245
+    - 246.9952820661298

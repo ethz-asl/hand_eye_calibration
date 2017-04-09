@@ -1,0 +1,121 @@
+bags:
+  - 1:
+    name: 1_falcon_merged-2017-04-07-12-16-44.bag
+    bag_path: /Users/ffurrer/Google Drive/fsr_2017/datasets/20170407-Trajectories-Fadri-LEEJ/
+    intrinsics_path: /Users/ffurrer/catkin_ws/src/hand_eye_calibration/hand_eye_calibration/calib/
+    target_config_path: /Users/ffurrer/catkin_ws/src/hand_eye_calibration/hand_eye_calibration/calib/
+    cameras:
+      cam_topics:
+        - /falcon/fisheye/fisheye
+        - /falcon/color/color
+        - /falcon/infrared/infrared
+        # - /ximea_asl/image_raw
+      cam_intrinsics:
+        - falcon_fisheye.yaml
+        - falcon_color.yaml
+        - falcon_infrared.yaml
+        # - falcon_ximea.yaml
+    target: target.yaml
+    tf_frames:
+      source:
+        - vicon
+        - odom
+      target:
+        - falcon
+        - imu
+  - 2:
+    name: 3_falcon_merged-2017-04-07-12-22-23.bag
+    bag_path: /Users/ffurrer/Google Drive/fsr_2017/datasets/20170407-Trajectories-Fadri-LEEJ/
+    intrinsics_path: /Users/ffurrer/catkin_ws/src/hand_eye_calibration/hand_eye_calibration/calib/
+    target_config_path: /Users/ffurrer/catkin_ws/src/hand_eye_calibration/hand_eye_calibration/calib/
+    cameras:
+      cam_topics:
+        - /falcon/fisheye/fisheye
+        - /falcon/color/color
+        - /falcon/infrared/infrared
+        # - /ximea_asl/image_raw
+      cam_intrinsics:
+        - falcon_fisheye.yaml
+        - falcon_color.yaml
+        - falcon_infrared.yaml
+        # - falcon_ximea.yaml
+    target: target.yaml
+    tf_frames:
+      source:
+        - vicon
+        - odom
+      target:
+        - falcon
+        - imu
+  - 3:
+    name: 3_falcon_merged-2017-04-07-12-22-23.bag
+    bag_path: /Users/ffurrer/Google Drive/fsr_2017/datasets/20170407-Trajectories-Fadri-LEEJ/
+    intrinsics_path: /Users/ffurrer/catkin_ws/src/hand_eye_calibration/hand_eye_calibration/calib/
+    target_config_path: /Users/ffurrer/catkin_ws/src/hand_eye_calibration/hand_eye_calibration/calib/
+    cameras:
+      cam_topics:
+        - /falcon/fisheye/fisheye
+        - /falcon/color/color
+        - /falcon/infrared/infrared
+        # - /ximea_asl/image_raw
+      cam_intrinsics:
+        - falcon_fisheye.yaml
+        - falcon_color.yaml
+        - falcon_infrared.yaml
+        # - falcon_ximea.yaml
+    target: target.yaml
+    tf_frames:
+      source:
+        - vicon
+        - odom
+      target:
+        - falcon
+        - imu
+  - 4:
+    name: 4_falcon_merged-2017-04-07-12-26-36.bag
+    bag_path: /Users/ffurrer/Google Drive/fsr_2017/datasets/20170407-Trajectories-Fadri-LEEJ/
+    intrinsics_path: /Users/ffurrer/catkin_ws/src/hand_eye_calibration/hand_eye_calibration/calib/
+    target_config_path: /Users/ffurrer/catkin_ws/src/hand_eye_calibration/hand_eye_calibration/calib/
+    cameras:
+      cam_topics:
+        - /falcon/fisheye/fisheye
+        - /falcon/color/color
+        - /falcon/infrared/infrared
+        # - /ximea_asl/image_raw
+      cam_intrinsics:
+        - falcon_fisheye.yaml
+        - falcon_color.yaml
+        - falcon_infrared.yaml
+        # - falcon_ximea.yaml
+    target: target.yaml
+    tf_frames:
+      source:
+        - vicon
+        - odom
+      target:
+        - falcon
+        - imu
+  - 5:
+    name: 5_falcon_merged-2017-04-07-12-36-38.bag
+    bag_path: /Users/ffurrer/Google Drive/fsr_2017/datasets/20170407-Trajectories-Fadri-LEEJ/
+    intrinsics_path: /Users/ffurrer/catkin_ws/src/hand_eye_calibration/hand_eye_calibration/calib/
+    target_config_path: /Users/ffurrer/catkin_ws/src/hand_eye_calibration/hand_eye_calibration/calib/
+    cameras:
+      cam_topics:
+        - /falcon/fisheye/fisheye
+        - /falcon/color/color
+        - /falcon/infrared/infrared
+        # - /ximea_asl/image_raw
+      cam_intrinsics:
+        - falcon_fisheye.yaml
+        - falcon_color.yaml
+        - falcon_infrared.yaml
+        # - falcon_ximea.yaml
+    target: target.yaml
+    tf_frames:
+      source:
+        - vicon
+        - odom
+      target:
+        - falcon
+        - imu
