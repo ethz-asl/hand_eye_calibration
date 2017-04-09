@@ -11,7 +11,7 @@ from hand_eye_calibration.dual_quaternion import DualQuaternion
 from hand_eye_calibration.quaternion import Quaternion
 from hand_eye_calibration.dual_quaternion_hand_eye_calibration import (
     compute_hand_eye_calibration, compute_hand_eye_calibration_RANSAC,
-    align_paths_at_index, evaluate_alignment, HandEyeConfig)
+    align_paths_at_index, evaluate_alignment, HandEyeConfig, compute_pose_error)
 from hand_eye_calibration.hand_eye_calibration_plotting_tools import plot_poses
 from hand_eye_calibration.csv_io import (
     write_time_stamped_poses_to_csv_file, read_time_stamped_poses_from_csv_file)
@@ -46,7 +46,11 @@ if __name__ == "__main__":
   num_pose_pairs = len(set_of_pose_pairs)
 
   # Config:
-  (filtering_config, hand_eye_config) = get_RANSAC_classic_config(True)
+  (filtering_config, hand_eye_config) = get_RANSAC_scalar_part_inliers_config(True)
+  # (filtering_config, hand_eye_config) = get_RANSAC_classic_config(True)
+  # (filtering_config, hand_eye_config) = get_exhaustive_search_pose_inliers_config(True)
+  # (filtering_config, hand_eye_config) = get_exhaustive_search_scalar_part_inliers_config(True)
+  # (filtering_config, hand_eye_config) = get_naive_config(True)
 
   # Results:
   results_dataset_names = []
@@ -133,23 +137,55 @@ if __name__ == "__main__":
   assert len(result_num_poses_kept) == num_pose_pairs
   assert len(result_runtimes) == num_pose_pairs
 
+  calibration_transformation_chain = []
+
+  # Add point at origin to represent the first coordinate
+  # frame in the chain of transformations.
+  calibration_transformation_chain.append(
+      DualQuaternion(Quaternion(0, 0, 0, 1), Quaternion(0, 0, 0, 0)))
+
+  # Add first transformation
+  calibration_transformation_chain.append(results_dq_H_E[0])
+
+  # Create chain of transformations from the first frame to the last.
+  i = 0
+  idx = 0
+  while i < (num_poses_sets - 2):
+    idx += (num_poses_sets - i - 1)
+    print("i: {}, idx: {}".format(i, idx))
+    calibration_transformation_chain.append(results_dq_H_E[idx])
+    i += 1
+
+  # Add inverse of first to last frame to close the loop.
+  calibration_transformation_chain.append(
+      results_dq_H_E[num_poses_sets - 2].inverse())
+
+  # Check loop.
+  assert len(calibration_transformation_chain) == (num_poses_sets + 1), (
+      len(calibration_transformation_chain), (num_poses_sets + 1))
+
+  # Chain the transformations together to get points we can plot.
+  poses_to_plot = []
+  dq_tmp = DualQuaternion(Quaternion(0, 0, 0, 1), Quaternion(0, 0, 0, 0))
+  for i in range(0, len(calibration_transformation_chain)):
+    dq_tmp *= calibration_transformation_chain[i]
+    poses_to_plot.append(dq_tmp.to_pose())
+
+  # Compute error of loop.
+  (error_position, error_orientation) = compute_pose_error(poses_to_plot[0],
+                                                           poses_to_plot[-1])
+  print("Error when closing the loop of hand eye calibrations - position: {}"
+        " m orientation: {} deg".format(error_position, error_orientation))
+
+  assert len(poses_to_plot) == len(calibration_transformation_chain)
+  plot_poses(np.array(poses_to_plot), plot_arrows=True,
+             title="Hand-Eye Calibration Results - Closing The Loop")
+
   output_file = open(args.result_file, 'w')
   for i in range(0, num_pose_pairs):
-    output_file.write("{}, {}, {}, {}, {}, {}, {}, {}, {}\n".format(
+    output_file.write("{}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}\n".format(
         results_dataset_names[i][0], results_dataset_names[i][1],
         results_success[i], results_rmse[i][0], results_rmse[i][1],
         result_num_inliers[i], result_num_initial_poses[i],
-        result_num_poses_kept[i], result_runtimes[i]))
-
-  dq_CALIGULA_MARS = results_dq_H_E[0]
-  dq_CALIGULA_NERO = results_dq_H_E[1]
-  dq_MARS_NERO = results_dq_H_E[2]
-
-  dq_CALIGULA = DualQuaternion(Quaternion(0, 0, 0, 1), Quaternion(0, 0, 0, 0))
-  dq_CALIGULA_NERO_2 = dq_CALIGULA_MARS * dq_MARS_NERO
-  dq_CALIGULA_2 = dq_CALIGULA_NERO * dq_MARS_NERO.inverse() * dq_CALIGULA_MARS.inverse()
-
-  poses = np.array([dq_CALIGULA.to_pose(), dq_CALIGULA_NERO.to_pose(), dq_CALIGULA_MARS.to_pose(),
-                    dq_CALIGULA_NERO_2.to_pose(),
-                    dq_CALIGULA_2.to_pose()])
-  plot_poses(poses)
+        result_num_poses_kept[i], result_runtimes[i], error_position,
+        error_orientation))

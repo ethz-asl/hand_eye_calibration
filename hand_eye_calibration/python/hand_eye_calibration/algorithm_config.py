@@ -84,7 +84,7 @@ def get_RANSAC_scalar_part_inliers_config(prefilter_poses):
   hand_eye_config.prefilter_poses_enabled = prefilter_poses
 
   # RANSAC
-  hand_eye_config.ransac_sample_size = 3
+  hand_eye_config.ransac_sample_size = 1
   hand_eye_config.ransac_enable_exhaustive_search = False
 
   # Inlier/Outlier detection
@@ -129,5 +129,27 @@ def get_exhaustive_search_scalar_part_inliers_config():
 
   # Inlier/Outlier detection
   hand_eye_config.ransac_inlier_classification = "scalar_part_equality"
+
+  return (time_alignment_config, hand_eye_config)
+
+
+def get_baseline_config():
+  """
+  Get config for the "Baseline" algorithm.
+  """
+  (time_alignment_config, hand_eye_config) = get_basic_config()
+
+  # TODO(mfehr): implement and add config flag.
+
+  # # Prefiltering is mandatory for exhaustive search,
+  # # otherwise it takes forever.
+  # hand_eye_config.prefilter_poses_enabled = True
+  #
+  # # RANSAC
+  # hand_eye_config.ransac_sample_size = 1
+  # hand_eye_config.ransac_enable_exhaustive_search = True
+  #
+  # # Inlier/Outlier detection
+  # hand_eye_config.ransac_inlier_classification = "scalar_part_equality"
 
   return (time_alignment_config, hand_eye_config)

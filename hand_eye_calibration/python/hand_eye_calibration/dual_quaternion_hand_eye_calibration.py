@@ -341,6 +341,30 @@ def prefilter_using_screw_axis(dq_W_E_vec_in, dq_B_H_vec_in, dot_product_thresho
   return dq_W_E_vec, dq_B_H_vec
 
 
+def compute_pose_error(pose_A, pose_B):
+  # Sum up the squared norm of the pose error.
+  error_position = np.linalg.norm(pose_A[0:3] - pose_B[0:3], ord=2)
+
+  # Construct quaternions to compare.
+  quaternion_A = Quaternion(q=pose_A[3:7])
+  quaternion_A.normalize()
+  if quaternion_A.w < 0:
+    quaternion_A.q = -quaternion_A.q
+  quaternion_B = Quaternion(q=pose_B[3:7])
+  quaternion_B.normalize()
+  if quaternion_B.w < 0:
+    quaternion_B.q = -quaternion_B.q
+
+  # Sum up the square of the orientation angle error.
+  error_angle_rad = angle_between_quaternions(
+      quaternion_A, quaternion_B)
+  error_angle_degrees = math.degrees(error_angle_rad)
+  if error_angle_degrees > 180.0:
+    error_angle_degrees = math.fabs(360.0 - error_angle_degrees)
+
+  return (error_position, error_angle_degrees)
+
+
 def evaluate_alignment(poses_A, poses_B, config, visualize=False):
   assert np.array_equal(poses_A.shape, poses_B.shape), (
       "Two pose vector of different size cannot be evaluated. "
@@ -356,25 +380,8 @@ def evaluate_alignment(poses_A, poses_B, config, visualize=False):
   errors_position = np.zeros((num_poses, 1))
   errors_orientation = np.zeros((num_poses, 1))
   for i in range(0, num_poses):
-    # Sum up the squared norm of the pose error.
-    error_position = np.linalg.norm(poses_A[i, 0:3] - poses_B[i, 0:3], ord=2)
-
-    # Construct quaternions to compare.
-    quaternion_A = Quaternion(q=poses_A[i, 3:7])
-    quaternion_A.normalize()
-    if quaternion_A.w < 0:
-      quaternion_A.q = -quaternion_A.q
-    quaternion_B = Quaternion(q=poses_B[i, 3:7])
-    quaternion_B.normalize()
-    if quaternion_B.w < 0:
-      quaternion_B.q = -quaternion_B.q
-
-    # Sum up the square of the orientation angle error.
-    error_angle_rad = angle_between_quaternions(
-        quaternion_A, quaternion_B)
-    error_angle_degrees = math.degrees(error_angle_rad)
-    if error_angle_degrees > 180.0:
-      error_angle_degrees = math.fabs(360.0 - error_angle_degrees)
+    (error_position,
+     error_angle_degrees) = compute_pose_error(poses_A[i, :], poses_B[i, :])
 
     if (error_angle_degrees < config.ransac_orientation_error_threshold_deg and
             error_position < config.ransac_position_error_threshold_m):
@@ -500,28 +507,29 @@ def compute_hand_eye_calibration_RANSAC(dq_B_H_vec, dq_W_E_vec, config):
     assert len(samples_dq_W_E) == len(samples_dq_B_H)
     assert len(samples_dq_W_E) == config.ransac_sample_size
 
-    # Transform all sample poses such that the first pose becomes the origin.
-    aligned_samples_dq_B_H = align_paths_at_index(samples_dq_B_H,
-                                                  align_index=0)
-    aligned_samples_dq_W_E = align_paths_at_index(samples_dq_W_E,
-                                                  align_index=0)
-    assert len(aligned_samples_dq_B_H) == len(aligned_samples_dq_W_E)
+    if config.ransac_sample_size > 1:
+      # Transform all sample poses such that the first pose becomes the origin.
+      aligned_samples_dq_B_H = align_paths_at_index(samples_dq_B_H,
+                                                    align_index=0)
+      aligned_samples_dq_W_E = align_paths_at_index(samples_dq_W_E,
+                                                    align_index=0)
+      assert len(aligned_samples_dq_B_H) == len(aligned_samples_dq_W_E)
 
-    # Reject the sample early if not even the samples have a
-    # similar scalar part. This should speed up RANSAC and is required, as
-    # the hand eye calibration does not accept outliers.
-    good_sample = True
-    for i in range(0, config.ransac_sample_size):
-      scalar_parts_W_E = aligned_samples_dq_W_E[i].scalar()
-      scalar_parts_B_H = aligned_samples_dq_B_H[i].scalar()
-      if not np.allclose(scalar_parts_W_E.dq, scalar_parts_B_H.dq,
-                         atol=config.ransac_sample_rejection_scalar_part_equality_tolerance):
-        good_sample = False
-        prerejected_samples += 1
-        break
+      # Reject the sample early if not even the samples have a
+      # similar scalar part. This should speed up RANSAC and is required, as
+      # the hand eye calibration does not accept outliers.
+      good_sample = True
+      for i in range(0, config.ransac_sample_size):
+        scalar_parts_W_E = aligned_samples_dq_W_E[i].scalar()
+        scalar_parts_B_H = aligned_samples_dq_B_H[i].scalar()
+        if not np.allclose(scalar_parts_W_E.dq, scalar_parts_B_H.dq,
+                           atol=config.ransac_sample_rejection_scalar_part_equality_tolerance):
+          good_sample = False
+          prerejected_samples += 1
+          break
 
-    if not good_sample:
-      continue
+      if not good_sample:
+        continue
 
     # Transform all poses based on the first sample pose and rearange poses,
     # such that the first sample pose is the first pose.
@@ -536,6 +544,10 @@ def compute_hand_eye_calibration_RANSAC(dq_B_H_vec, dq_W_E_vec, config):
     inlier_dq_B_H = []
     inlier_dq_W_E = []
     if config.ransac_inlier_classification == "rmse_threshold":
+      assert config.ransac_sample_size >= 2, (
+          "Cannot compute the hand eye calibration with a "
+          "sample size of less than 2!")
+
       # Compute initial hand-eye calibration on SAMPLES only.
       dq_H_E_initial = compute_hand_eye_calibration(
           aligned_samples_dq_B_H, aligned_samples_dq_W_E,
