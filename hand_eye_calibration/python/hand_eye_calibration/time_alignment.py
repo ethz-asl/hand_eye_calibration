@@ -68,7 +68,7 @@ def resample_quaternions_from_samples(times, quaternions, samples):
   interp_quaternions = []
   for sample in samples:
     assert sample <= times[-1], (sample, times)
-    assert sample >= times[0], (sample, times)
+    assert sample >= times[0], (sample, times[0])
 
     right_idx = bisect.bisect_left(times, sample)
     if (np.isclose(sample, times[right_idx], atol=1e-16)):
@@ -248,6 +248,8 @@ def compute_aligned_poses(time_stamped_poses_A,
   samples = []
   max_time_stamp_difference = 0.1
   for timestamp in timestamps_low:
+    if (timestamp < start_time):
+      continue
     idx = bisect.bisect_left(timestamps_high, timestamp)
     if idx >= timestamps_high.shape[0] - 1:
       print("Omitting timestamps at the end of the high frequency poses.")

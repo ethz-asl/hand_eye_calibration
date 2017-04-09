@@ -98,6 +98,7 @@ def generate_test_path(n_samples, include_outliers=False,
       x[i] += np.random.normal(0.0, noise_sigma_trans)
       y[i] += np.random.normal(0.0, noise_sigma_trans)
       z[i] += np.random.normal(0.0, noise_sigma_trans)
+      # TODO(ff): Fix this, there should only be 3 random numbers drawn.
       axis_noise_x = np.random.normal(0.0, noise_sigma_rot)
       axis_noise_y = np.random.normal(0.0, noise_sigma_rot)
       axis_noise_z = np.random.normal(0.0, noise_sigma_rot)
