@@ -50,6 +50,8 @@ from hand_eye_calibration.hand_eye_calibration_plotting_tools import (
 class HandEyeConfig:
 
   def __init__(self):
+    self.algorithm_name = ""
+
     # Select distinctive poses based on skrew axis
     self.prefilter_poses_enabled = True
     self.prefilter_dot_product_threshold = 0.975

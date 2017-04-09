@@ -21,6 +21,8 @@ def get_basic_config():
 
   hand_eye_config = HandEyeConfig()
 
+  hand_eye_config.algorithm_name = ""
+
   # Select distinctive poses based on skrew axis
   hand_eye_config.prefilter_poses_enabled = False
   hand_eye_config.prefilter_dot_product_threshold = 0.975
@@ -59,6 +61,8 @@ def get_RANSAC_classic_config(prefilter_poses):
   """
   Get config for the "RANSAC - Classic (pose inliers)" algorithm.
   """
+  hand_eye_config.algorithm_name = "RC"
+
   (time_alignment_config, hand_eye_config) = get_basic_config()
 
   # Select distinctive poses based on skrew axis
@@ -80,6 +84,8 @@ def get_RANSAC_scalar_part_inliers_config(prefilter_poses):
   """
   (time_alignment_config, hand_eye_config) = get_basic_config()
 
+  hand_eye_config.algorithm_name = "RS"
+
   # Select distinctive poses based on skrew axis
   hand_eye_config.prefilter_poses_enabled = prefilter_poses
 
@@ -98,6 +104,8 @@ def get_exhaustive_search_pose_inliers_config():
   Get config for the "Exhaustive search - pose inliers" algorithm.
   """
   (time_alignment_config, hand_eye_config) = get_basic_config()
+
+  hand_eye_config.algorithm_name = "EC"
 
   # Prefiltering is mandatory for exhaustive search,
   # otherwise it takes forever.
@@ -119,6 +127,8 @@ def get_exhaustive_search_scalar_part_inliers_config():
   """
   (time_alignment_config, hand_eye_config) = get_basic_config()
 
+  hand_eye_config.algorithm_name = "ES"
+
   # Prefiltering is mandatory for exhaustive search,
   # otherwise it takes forever.
   hand_eye_config.prefilter_poses_enabled = True
@@ -138,6 +148,8 @@ def get_baseline_config():
   Get config for the "Baseline" algorithm.
   """
   (time_alignment_config, hand_eye_config) = get_basic_config()
+
+  hand_eye_config.algorithm_name = "N"
 
   # TODO(mfehr): implement and add config flag.
 

@@ -47,10 +47,14 @@ if __name__ == "__main__":
 
   # Config:
   (filtering_config, hand_eye_config) = get_RANSAC_scalar_part_inliers_config(True)
+
   # (filtering_config, hand_eye_config) = get_RANSAC_classic_config(True)
   # (filtering_config, hand_eye_config) = get_exhaustive_search_pose_inliers_config(True)
   # (filtering_config, hand_eye_config) = get_exhaustive_search_scalar_part_inliers_config(True)
   # (filtering_config, hand_eye_config) = get_naive_config(True)
+
+  hand_eye_config.visualize = args.visualize
+  hand_eye_config.plot_every_nth_pose = args.plot_every_nth_pose
 
   # Results:
   results_dataset_names = []
@@ -177,13 +181,22 @@ if __name__ == "__main__":
   print("Error when closing the loop of hand eye calibrations - position: {}"
         " m orientation: {} deg".format(error_position, error_orientation))
 
-  assert len(poses_to_plot) == len(calibration_transformation_chain)
-  plot_poses([np.array(poses_to_plot)], plot_arrows=True,
-             title="Hand-Eye Calibration Results - Closing The Loop")
+  if args.visualize:
+    assert len(poses_to_plot) == len(calibration_transformation_chain)
+    plot_poses([np.array(poses_to_plot)], plot_arrows=True,
+               title="Hand-Eye Calibration Results - Closing The Loop")
 
   output_file = open(args.result_file, 'w')
+  output_file.write("algorithm name, prefiltering, poses_B_H_csv_file, poses_W_E_csv_file,"
+                    "success, position rmse, orientation rmse,"
+                    "num inliers, num input poses, num poses "
+                    "after filtering, runtime [s], "
+                    "loop error position [m], "
+                    "loop error orientation [deg]\n")
+
   for i in range(0, num_pose_pairs):
-    output_file.write("{}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}\n".format(
+    output_file.write("{}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}\n".format(
+        hand_eye_config.algorithm_name, hand_eye_config.prefilter_poses_enabled,
         results_dataset_names[i][0], results_dataset_names[i][1],
         results_success[i], results_rmse[i][0], results_rmse[i][1],
         result_num_inliers[i], result_num_initial_poses[i],
