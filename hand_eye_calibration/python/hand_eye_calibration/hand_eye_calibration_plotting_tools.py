@@ -1,7 +1,7 @@
 
 import matplotlib.pyplot as plt
 from matplotlib.patches import FancyArrowPatch
-from mpl_toolkits.mplot3d import proj3d
+from mpl_toolkits.mplot3d import (proj3d, Axes3D)
 
 import copy
 import numpy as np
@@ -24,124 +24,93 @@ class Arrow3D(FancyArrowPatch):
     FancyArrowPatch.draw(self, renderer)
 
 
-def plot_poses(poses, additional_poses=None, plot_arrows=True, title=""):
+def compute_bbox_3D(poses_list):
+  bbox_min = np.zeros((len(poses_list), 3))
+  bbox_max = np.zeros((len(poses_list), 3))
+  for i in range(0, len(poses_list)):
+    poses = poses_list[i]
+    bbox_min[i, :] = np.amin(poses[:, 0:3], axis=0)
+    bbox_max[i, :] = np.amax(poses[:, 0:3], axis=0)
+  return (np.amax(bbox_max, axis=0), np.amin(bbox_min, axis=0))
+
+
+def plot_poses(poses_list, plot_arrows=True, title=""):
   title_position = 1.05
   fig = plt.figure()
+  plt.clf()
+  ax = Axes3D(fig)
+
   if title:
     fig.suptitle(title, fontsize='24')
-  ax = fig.add_subplot(111, projection='3d')
 
-  # Make copy, otherwise the data is manipulated.
-  poses_A = poses.copy()
+  colors = ['r', 'g', 'b', 'c', 'm', 'k']
+  num_colors = len(colors)
 
-  # Tranform position from device into world frame.
-  for pose in poses_A:
-    quaternion = Quaternion(q=pose[3:7])
-    pose[0:3] = quaternion.rotate_vector(pose[0:3])
+  assert len(poses_list) < num_colors, (
+      "Need to define more colors to plot more trajectories!")
 
-  # Compute dimensions for visualization and legend.
-  min_A = np.amin(poses_A[:, 0:3])
-  max_A = np.amax(poses_A[:, 0:3])
-  span_of_trajectories = max_A - min_A
-  positions = ax.plot(xs=poses_A[:, 0], ys=poses_A[:, 1],
-                      zs=poses_A[:, 2], color='blue')
-  plt.legend(iter(positions), ('3D poses A'))
+  (bbox_max, bbox_min) = compute_bbox_3D(poses_list)
 
-  poses_B = None
-  if additional_poses is not None:
-    poses_B = additional_poses.copy()
+  arrow_size = np.linalg.norm(bbox_max - bbox_min) * 0.05
+  arrow_width = 2
 
-    # Tranform position from device into world frame.
-    if poses_B is not None:
-      for pose in poses_B:
-        quaternion = Quaternion(q=pose[3:7])
-        pose[0:3] = quaternion.rotate_vector(pose[0:3])
+  axis_min = np.amin(bbox_min)
+  axis_max = np.amax(bbox_max)
+  ax.set_xlim3d(axis_min, axis_max)
+  ax.set_ylim3d(axis_min, axis_max)
+  ax.set_zlim3d(axis_min, axis_max)
 
-    # Compute dimensions for visualization and legend.
-    min_B = np.amin(poses_B[:, 0:3])
-    max_B = np.amax(poses_B[:, 0:3])
-    span_of_trajectories = max(span_of_trajectories, max_B - min_B)
+  for i in range(0, len(poses_list)):
+    poses = poses_list[i].copy()
 
-    positions_2 = ax.plot(
-        xs=poses_B[:, 0],
-        ys=poses_B[:, 1],
-        zs=poses_B[:, 2],
-        color='red')
-    plt.legend(iter(positions + positions_2), ('3D poses A', '3D poses B'))
+    # Plot line.
+    positions = ax.plot(xs=poses[:, 0], ys=poses[:, 1],
+                        zs=poses[:, 2], color=colors[i])
 
-  # Arrows are about 1% of the span of the trajectories.
-  arrow_size = span_of_trajectories * 0.01
-  print("Plot arrows of size: {}m".format(arrow_size))
-
-  for pose in poses_A:
-    # Position point
-    ax.plot([pose[0]], [pose[1]], [pose[2]], 'o',
-            markersize=5, color='blue', alpha=0.5)
-    if not plot_arrows:
-      continue
-    t = tf.transformations.quaternion_matrix(pose[3:7].copy())
-    # Add orientation arrow.
-    x_arrow = np.array([1, 0, 0, 0]).copy()
-    x_arrow_rotated = np.dot(t, x_arrow)
-    x_arrow_rotated *= arrow_size
-    a = Arrow3D(
-        [pose[0], pose[0] + x_arrow_rotated[0]
-         ], [pose[1], pose[1] + x_arrow_rotated[1]],
-        [pose[2], pose[2] + x_arrow_rotated[2]],
-        mutation_scale=20,
-        lw=3,
-        arrowstyle="-|>",
-        color="b")
-    ax.add_artist(a)
-
-    y_arrow = np.array([0, 1, 0, 0]).copy()
-    y_arrow_rotated = np.dot(t, y_arrow)
-    y_arrow_rotated *= arrow_size
-    a = Arrow3D(
-        [pose[0], pose[0] + y_arrow_rotated[0]
-         ], [pose[1], pose[1] + y_arrow_rotated[1]],
-        [pose[2], pose[2] + y_arrow_rotated[2]],
-        mutation_scale=20,
-        lw=3,
-        arrowstyle="-|>",
-        color="c")
-    ax.add_artist(a)
-
-  if poses_B is not None:
-    for pose in poses_B:
-
+    for pose in poses:
       # Position point
       ax.plot([pose[0]], [pose[1]], [pose[2]], 'o',
-              markersize=5, color='red', alpha=0.5)
+              markersize=5, color=colors[i], alpha=0.5)
       if not plot_arrows:
         continue
-      # Add orientation arrow.
-      x_arrow = np.array([1, 0, 0, 0]).copy()
-      t = tf.transformations.quaternion_matrix(pose[3:7].copy())
-      x_arrow_rotated = np.dot(t, x_arrow)
-      x_arrow_rotated *= arrow_size
+
+      rotation_quaternion = Quaternion(q=pose[3:7])
+
+      x_rotated = rotation_quaternion.rotate_vector([1, 0, 0, 0])
+      x_rotated *= arrow_size
       a = Arrow3D(
-          [pose[0], pose[0] + x_arrow_rotated[0]
-           ], [pose[1], pose[1] + x_arrow_rotated[1]],
-          [pose[2], pose[2] + x_arrow_rotated[2]],
+          [pose[0], pose[0] + x_rotated[0]
+           ], [pose[1], pose[1] + x_rotated[1]],
+          [pose[2], pose[2] + x_rotated[2]],
           mutation_scale=20,
-          lw=3,
+          lw=arrow_width,
           arrowstyle="-|>",
           color="r")
       ax.add_artist(a)
-      y_arrow = np.array([0, 1, 0, 0]).copy()
-      y_arrow_rotated = np.dot(t, y_arrow)
-      y_arrow_rotated *= arrow_size
+
+      y_rotated = rotation_quaternion.rotate_vector([0, 1, 0, 0])
+      y_rotated *= arrow_size
       a = Arrow3D(
-          [pose[0], pose[0] + y_arrow_rotated[0]
-           ], [pose[1], pose[1] + y_arrow_rotated[1]],
-          [pose[2], pose[2] + y_arrow_rotated[2]],
+          [pose[0], pose[0] + y_rotated[0]
+           ], [pose[1], pose[1] + y_rotated[1]],
+          [pose[2], pose[2] + y_rotated[2]],
           mutation_scale=20,
-          lw=3,
+          lw=arrow_width,
           arrowstyle="-|>",
-          color="y")
+          color="g")
       ax.add_artist(a)
 
+      z_rotated = rotation_quaternion.rotate_vector([0, 0, 1, 0])
+      z_rotated *= arrow_size
+      a = Arrow3D(
+          [pose[0], pose[0] + z_rotated[0]
+           ], [pose[1], pose[1] + z_rotated[1]],
+          [pose[2], pose[2] + z_rotated[2]],
+          mutation_scale=20,
+          lw=arrow_width,
+          arrowstyle="-|>",
+          color="b")
+      ax.add_artist(a)
   plt.show(block=True)
 
 

@@ -2,8 +2,10 @@ import tf
 import numpy as np
 
 from hand_eye_calibration.dual_quaternion_hand_eye_calibration import (
-    align, draw_poses, align_paths_at_index,
-    compute_dual_quaternions_with_offset)
+    compute_hand_eye_calibration, align_paths_at_index,
+    compute_dual_quaternions_with_offset, HandEyeConfig)
+from hand_eye_calibration.hand_eye_calibration_plotting_tools import (
+    plot_alignment_errors, plot_poses)
 from hand_eye_calibration.dual_quaternion import DualQuaternion
 from hand_eye_calibration.quaternion import Quaternion
 

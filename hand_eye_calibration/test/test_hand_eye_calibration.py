@@ -5,8 +5,10 @@ import numpy as np
 import numpy.testing as npt
 
 from hand_eye_calibration.dual_quaternion_hand_eye_calibration import (
-    align, draw_poses, align_paths_at_index,
-    compute_dual_quaternions_with_offset)
+    compute_hand_eye_calibration, compute_hand_eye_calibration_RANSAC, align_paths_at_index,
+    compute_dual_quaternions_with_offset, HandEyeConfig)
+from hand_eye_calibration.hand_eye_calibration_plotting_tools import (
+    plot_alignment_errors, plot_poses)
 from hand_eye_calibration.dual_quaternion import DualQuaternion
 from hand_eye_calibration.quaternion import Quaternion
 import hand_eye_calibration.hand_eye_test_helpers as he_helpers
@@ -33,8 +35,20 @@ class HandEyeCalibration(unittest.TestCase):
   def test_hand_eye_calibration(self):
     dq_B_H_vec, dq_W_E_vec = he_helpers.generate_test_paths(
         20, self.dq_H_E, self.dq_B_W, self.paths_start_at_origin)
-    dq_H_E_estimated = align(dq_B_H_vec, dq_W_E_vec,
-                             self.enforce_same_non_dual_scalar_sign)
+
+    print("dq_H_E ground truth: \n{}".format(self.dq_H_E))
+
+    hand_eye_config = HandEyeConfig()
+    hand_eye_config.visualize = False
+    hand_eye_config.ransac_max_number_iterations = 50
+    hand_eye_config.ransac_sample_size = 3
+    (success, dq_H_E_estimated, rmse,
+     num_inliers, num_poses_kept,
+     runtime, singular_values,
+     bad_singular_values) = compute_hand_eye_calibration_RANSAC(
+        dq_B_H_vec, dq_W_E_vec, hand_eye_config)
+    assert success, "Hand-eye calibration, failed!"
+
     pose_H_E_estimated = dq_H_E_estimated.to_pose()
     dq_H_E_estimated.normalize()
 
@@ -51,7 +65,7 @@ class HandEyeCalibration(unittest.TestCase):
     print("T_H_E estimated: \n{}".format(dq_H_E_estimated.to_matrix()))
 
     assert np.allclose(
-        self.dq_H_E.dq, dq_H_E_estimated.dq, rtol=1e-3), (
+        self.dq_H_E.dq, dq_H_E_estimated.dq, atol=1e-3), (
         "input dual quaternion: {}, estimated dual quaternion: {}".format(
             self.dq_H_E, dq_H_E_estimated))
 
@@ -59,7 +73,7 @@ class HandEyeCalibration(unittest.TestCase):
     dq_B_H_vec, dq_W_E_vec = he_helpers.generate_test_paths(
         20, self.dq_H_E, self.dq_B_W, self.paths_start_at_origin,
         include_outliers_B_H=True, outlier_probability_B_H=0.1,
-        include_outliers_W_E=True, outlier_probability_W_E=0.5)
+        include_outliers_W_E=True, outlier_probability_W_E=0.2)
 
     # Plot the poses with outliers.
     poses_B_H = np.array([dq_B_H_vec[0].to_pose().T])
@@ -69,10 +83,19 @@ class HandEyeCalibration(unittest.TestCase):
           [dq_B_H_vec[i].to_pose().T]), axis=0)
       poses_W_E = np.append(poses_W_E, np.array(
           [dq_W_E_vec[i].to_pose().T]), axis=0)
-    draw_poses(poses_B_H, poses_W_E)
+    plot_poses([poses_B_H, poses_W_E])
 
-    dq_H_E_estimated = align(dq_B_H_vec, dq_W_E_vec,
-                             self.enforce_same_non_dual_scalar_sign)
+    hand_eye_config = HandEyeConfig()
+    hand_eye_config.visualize = False
+    hand_eye_config.ransac_max_number_iterations = 50
+    hand_eye_config.ransac_sample_size = 3
+    (success, dq_H_E_estimated, rmse,
+     num_inliers, num_poses_kept,
+     runtime, singular_values,
+     bad_singular_values) = compute_hand_eye_calibration_RANSAC(dq_B_H_vec, dq_W_E_vec,
+                                                                hand_eye_config)
+    assert success, "Hand-eye calibration, failed!"
+
     pose_H_E_estimated = dq_H_E_estimated.to_pose()
     dq_H_E_estimated.normalize()
 
@@ -89,7 +112,7 @@ class HandEyeCalibration(unittest.TestCase):
     print("T_H_E estimated: \n{}".format(dq_H_E_estimated.to_matrix()))
 
     assert np.allclose(
-        self.dq_H_E.dq, dq_H_E_estimated.dq, rtol=1e-3), (
+        self.dq_H_E.dq, dq_H_E_estimated.dq, atol=2e-2), (
         "input dual quaternion: {}, estimated dual quaternion: {}".format(
             self.dq_H_E, dq_H_E_estimated))
 
@@ -109,10 +132,19 @@ class HandEyeCalibration(unittest.TestCase):
           [dq_B_H_vec[i].to_pose().T]), axis=0)
       poses_W_E = np.append(poses_W_E, np.array(
           [dq_W_E_vec[i].to_pose().T]), axis=0)
-    draw_poses(poses_B_H, poses_W_E)
+    plot_poses([poses_B_H, poses_W_E])
 
-    dq_H_E_estimated = align(dq_B_H_vec, dq_W_E_vec,
-                             self.enforce_same_non_dual_scalar_sign)
+    hand_eye_config = HandEyeConfig()
+    hand_eye_config.visualize = False
+    hand_eye_config.ransac_max_number_iterations = 50
+    hand_eye_config.ransac_sample_size = 3
+    (success, dq_H_E_estimated, rmse,
+     num_inliers, num_poses_kept,
+     runtime, singular_values,
+     bad_singular_values) = compute_hand_eye_calibration_RANSAC(dq_B_H_vec, dq_W_E_vec,
+                                                                hand_eye_config)
+    assert success, "Hand-eye calibration, failed!"
+
     pose_H_E_estimated = dq_H_E_estimated.to_pose()
     dq_H_E_estimated.normalize()
 
@@ -129,11 +161,11 @@ class HandEyeCalibration(unittest.TestCase):
     print("T_H_E estimated: \n{}".format(dq_H_E_estimated.to_matrix()))
 
     assert np.allclose(
-        self.dq_H_E.dq, dq_H_E_estimated.dq, rtol=4e-2), (
+        self.dq_H_E.dq, dq_H_E_estimated.dq, atol=4e-2), (
         "input dual quaternion: {}, estimated dual quaternion: {}".format(
             self.dq_H_E, dq_H_E_estimated))
 
-  def test_draw_poses(self):
+  def test_plot_poses(self):
     # Draw both paths in their Global/World frame.
     poses_B_H = np.array([self.dq_B_H_vec[0].to_pose().T])
     poses_W_E = np.array([self.dq_W_E_vec[0].to_pose().T])
@@ -142,7 +174,7 @@ class HandEyeCalibration(unittest.TestCase):
           [self.dq_B_H_vec[i].to_pose().T]), axis=0)
       poses_W_E = np.append(poses_W_E, np.array(
           [self.dq_W_E_vec[i].to_pose().T]), axis=0)
-    draw_poses(poses_B_H, poses_W_E)
+    plot_poses([poses_B_H, poses_W_E])
 
 
 if __name__ == '__main__':

@@ -8,13 +8,16 @@ import numpy as np
 
 from hand_eye_calibration.dual_quaternion import DualQuaternion
 from hand_eye_calibration.dual_quaternion_hand_eye_calibration import (
-    align, align_paths_at_index, evaluate_alignment)
+    compute_hand_eye_calibration, compute_hand_eye_calibration_RANSAC,
+    compute_hand_eye_calibration_BASELINE,
+    align_paths_at_index, evaluate_alignment, HandEyeConfig)
 from hand_eye_calibration.hand_eye_calibration_plotting_tools import plot_poses
-
-# CONFIG
-paths_start_at_origin = True
-enforce_same_non_dual_scalar_sign = True
-enforce_positive_non_dual_scalar_sign = True
+from hand_eye_calibration.algorithm_config import (
+    get_basic_config, get_RANSAC_classic_config,
+    get_RANSAC_scalar_part_inliers_config,
+    get_exhaustive_search_pose_inliers_config,
+    get_exhaustive_search_scalar_part_inliers_config,
+    get_baseline_config)
 
 if __name__ == "__main__":
   parser = argparse.ArgumentParser(description='Align pairs of poses.')
@@ -82,7 +85,7 @@ if __name__ == "__main__":
   dual_quat_B_H_vec = align_paths_at_index(dual_quat_B_H_vec)
   dual_quat_W_E_vec = align_paths_at_index(dual_quat_W_E_vec)
 
-  # Draw both paths in their Global/World frame.
+  # Draw both paths in their Global / World frame.
   if args.visualize:
     poses1 = np.array([dual_quat_B_H_vec[0].to_pose().T])
     poses2 = np.array([dual_quat_W_E_vec[0].to_pose().T])
@@ -92,48 +95,23 @@ if __name__ == "__main__":
       poses2 = np.append(poses2, np.array(
           [dual_quat_W_E_vec[i].to_pose().T]), axis=0)
     every_nth_element = args.plot_every_nth_pose
-    plot_poses(poses1[::every_nth_element], poses2[::every_nth_element],
+    plot_poses([poses1[::every_nth_element], poses2[::every_nth_element]],
                True, title="3D Poses Before Alignment")
 
-  # Compute hand-eye calibration.
-  dq_H_E_estimated = align(
-      dual_quat_B_H_vec, dual_quat_W_E_vec, enforce_same_non_dual_scalar_sign)
-  dq_H_E_estimated.normalize()
-  pose_H_E_estimated = dq_H_E_estimated.to_pose()
+  # TODO(mfehr): Add param to switch between algorithms.
+  # (_, hand_eye_config) = get_RANSAC_scalar_part_inliers_config(True)
+  (_, hand_eye_config) = get_baseline_config(True)
 
-  # Compute aligned poses.
-  dq_E_H_estimated = dq_H_E_estimated.inverse()
-  dq_E_H_estimated.normalize()
-  dq_E_H_estimated.enforce_positive_q_rot_w()
+  hand_eye_config.visualize = args.visualize
+  hand_eye_config.visualize_plot_every_nth_pose = args.plot_every_nth_pose
 
-  dual_quat_W_H_vec = []
-  for i in range(0, len(dual_quat_B_H_vec)):
-    dual_quat_W_H = dual_quat_W_E_vec[i] * dq_E_H_estimated
-    dual_quat_W_H.normalize()
-    dual_quat_W_H.enforce_positive_q_rot_w()
-    dual_quat_W_H_vec.append(dual_quat_W_H)
-
-  dual_quat_W_H_vec = align_paths_at_index(dual_quat_W_H_vec)
-
-  poses_2_aligned_to_1 = np.array([dual_quat_W_H_vec[0].to_pose().T])
-  for i in range(1, len(dual_quat_W_H_vec)):
-    poses_2_aligned_to_1 = np.append(poses_2_aligned_to_1, np.array(
-        [dual_quat_W_H_vec[i].to_pose().T]), axis=0)
-
-  # Draw aligned poses.
-  if args.visualize:
-    every_nth_element = args.plot_every_nth_pose
-    plot_poses(poses1[:: every_nth_element], poses_2_aligned_to_1[:: every_nth_element],
-               True, title="3D Poses After Alignment")
-
-  # Evaluate alignment.
-  (rmse_position, rmse_orientation) = evaluate_alignment(
-      poses1, poses_2_aligned_to_1, args.visualize)
-
-  print("Alignment evaluation: RMSE position: {}m RMSE orientation: {}°".format(
-      rmse_position, rmse_orientation))
-
-  print("The hand-eye calibration's output pose is: \n" "{}".format(
-        pose_H_E_estimated))
-  print("The norm of the translation is: {}".format(
-      np.linalg.norm(pose_H_E_estimated[0:3])))
+  if hand_eye_config.use_baseline_approach:
+    (success, dq_H_E, rmse,
+     num_inliers, num_poses_kept,
+     runtime, singular_values, bad_singular_values) = compute_hand_eye_calibration_BASELINE(
+        dual_quat_B_H_vec, dual_quat_W_E_vec, hand_eye_config)
+  else:
+    (success, dq_H_E, rmse,
+     num_inliers, num_poses_kept,
+     runtime, singular_values, bad_singular_values) = compute_hand_eye_calibration_RANSAC(
+        dual_quat_B_H_vec, dual_quat_W_E_vec, hand_eye_config)
