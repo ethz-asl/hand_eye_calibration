@@ -347,7 +347,9 @@ def prefilter_using_screw_axis(dq_W_E_vec_in, dq_B_H_vec_in, dot_product_thresho
 
 
 def compute_pose_error(pose_A, pose_B):
-  # Sum up the squared norm of the pose error.
+  """
+  Compute the error norm of position and orientation.
+  """
   error_position = np.linalg.norm(pose_A[0:3] - pose_B[0:3], ord=2)
 
   # Construct quaternions to compare.
@@ -371,6 +373,15 @@ def compute_pose_error(pose_A, pose_B):
 
 
 def evaluate_alignment(poses_A, poses_B, config, visualize=False):
+  """
+  Takes aligned poses and compares position and orientation.
+  Returns the RMSE of position and orientation as well as a bool vector,
+  indicating which pairs are below the error thresholds specified in the
+  configuration:
+    ransac_orientation_error_threshold_deg
+    ransac_position_error_threshold_m
+  """
+
   assert np.array_equal(poses_A.shape, poses_B.shape), (
       "Two pose vector of different size cannot be evaluated. "
       "Size pose A: {} Size pose B: {}".format(poses_A.shape, poses_B.shape))
@@ -411,6 +422,10 @@ def evaluate_alignment(poses_A, poses_B, config, visualize=False):
 
 
 def get_aligned_poses(dq_B_H_vec, dq_W_E_vec, dq_H_E_estimated):
+  """
+
+  """
+
   assert len(dq_W_E_vec) == len(dq_B_H_vec)
 
   # Compute aligned poses.
@@ -445,7 +460,19 @@ def get_aligned_poses(dq_B_H_vec, dq_W_E_vec, dq_H_E_estimated):
 
 
 def compute_hand_eye_calibration_BASELINE(dq_B_H_vec, dq_W_E_vec, config):
-  """Do the actual hand eye-calibration as described in the referenced paper."""
+  """
+  Do the actual hand eye-calibration as described in the referenced paper.
+
+  Outputs a tuple containing:
+   - success
+   - dq_H_E
+   - (best_rmse_position, best_rmse_orientation)
+   - best_num_inliers
+   - num_poses_after_filtering
+   - runtime
+   - singular_values
+   - bad_singular_values
+  """
   assert len(dq_W_E_vec) == len(dq_B_H_vec)
   num_poses = len(dq_W_E_vec)
 
@@ -517,8 +544,9 @@ def compute_hand_eye_calibration_BASELINE(dq_B_H_vec, dq_W_E_vec, config):
         best_num_inliers = len(dq_W_E_vec_inlier)
         break
 
-      if j + 1 >= num_poses_after_filtering:
-        assert False, "Not enough inliers found."
+      assert (j + 1) < num_poses_after_filtering, (
+          "Reached over all filtered poses and couldn't find "
+          "enough inliers.")
 
   if config.enable_exhaustive_search:
     assert best_idx != -1, "Not enough inliers found!"
@@ -558,6 +586,7 @@ def compute_hand_eye_calibration_BASELINE(dq_B_H_vec, dq_W_E_vec, config):
                                                dq_W_E_vec_inlier,
                                                dq_H_E_estimated)
   else:
+    # TODO(mfehr): There is some redundancy here, fix it!
     aligned_dq_B_H = align_paths_at_index(dq_B_H_vec, best_idx)
     aligned_dq_W_E = align_paths_at_index(dq_W_E_vec, best_idx)
     (poses_B_H, poses_W_H) = get_aligned_poses(aligned_dq_B_H,
@@ -589,6 +618,23 @@ def compute_hand_eye_calibration_BASELINE(dq_B_H_vec, dq_W_E_vec, config):
 
 
 def compute_hand_eye_calibration_RANSAC(dq_B_H_vec, dq_W_E_vec, config):
+  """
+  Runs various RANSAC-based hand-eye calibration algorithms.
+   - RANSAC using the position/orientation error to determine model inliers
+   - RANSAC using the scalar part equality constraint to determine model inliers
+   For evaluation purposes:
+   - Exhaustive search versions of both algorithms above.
+
+   Outputs a tuple containing:
+    - success
+    - dq_H_E
+    - (best_rmse_position, best_rmse_orientation)
+    - best_num_inliers
+    - num_poses_after_filtering
+    - runtime
+    - singular_values
+    - bad_singular_values
+  """
   assert len(dq_W_E_vec) == len(dq_B_H_vec)
 
   start_time = timeit.default_timer()
@@ -612,8 +658,10 @@ def compute_hand_eye_calibration_RANSAC(dq_B_H_vec, dq_W_E_vec, config):
     dq_W_E_vec_filtered = dq_W_E_vec
     num_poses_after_filtering = num_poses
 
-  print("Ignore {} poses based on the screw axis".format(num_poses - num_poses_after_filtering))
-  print("Drawing samples from remaining {} poses".format(num_poses_after_filtering))
+  print("Ignore {} poses based on the screw axis".format(
+      num_poses - num_poses_after_filtering))
+  print("Drawing samples from remaining {} poses".format(
+      num_poses_after_filtering))
 
   indices_set = set(range(0, num_poses_after_filtering))
 
@@ -630,12 +678,14 @@ def compute_hand_eye_calibration_RANSAC(dq_B_H_vec, dq_W_E_vec, config):
   max_number_samples = np.inf
   if not config.enable_exhaustive_search:
     print("Running RANSAC...")
-    print("Inlier classification method: {}".format(config.ransac_inlier_classification))
+    print("Inlier classification method: {}".format(
+        config.ransac_inlier_classification))
   else:
-    all_sample_combinations = list(itertools.combinations(indices_set, config.ransac_sample_size))
+    all_sample_combinations = list(
+        itertools.combinations(indices_set, config.ransac_sample_size))
     max_number_samples = len(all_sample_combinations)
-    print("Running exhaustive search, exploring {} sample combinations...".format(
-        max_number_samples))
+    print("Running exhaustive search, exploring {} "
+          "sample combinations...".format(max_number_samples))
 
   sample_number = 0
   full_iterations = 0
@@ -650,7 +700,8 @@ def compute_hand_eye_calibration_RANSAC(dq_B_H_vec, dq_W_E_vec, config):
     if config.enable_exhaustive_search:
       sample_indices = list(all_sample_combinations[sample_number])
     else:
-      sample_indices = random.sample(indices_set, config.ransac_sample_size)
+      sample_indices = random.sample(indices_set,
+                                     config.ransac_sample_size)
     sample_number += 1
 
     # Extract sampled poses.
@@ -674,8 +725,9 @@ def compute_hand_eye_calibration_RANSAC(dq_B_H_vec, dq_W_E_vec, config):
       for i in range(0, config.ransac_sample_size):
         scalar_parts_W_E = aligned_samples_dq_W_E[i].scalar()
         scalar_parts_B_H = aligned_samples_dq_B_H[i].scalar()
-        if not np.allclose(scalar_parts_W_E.dq, scalar_parts_B_H.dq,
-                           atol=config.ransac_sample_rejection_scalar_part_equality_tolerance):
+        if not np.allclose(
+                scalar_parts_W_E.dq, scalar_parts_B_H.dq,
+                atol=config.ransac_sample_rejection_scalar_part_equality_tolerance):
           good_sample = False
           prerejected_samples += 1
           break
@@ -730,8 +782,9 @@ def compute_hand_eye_calibration_RANSAC(dq_B_H_vec, dq_W_E_vec, config):
         if inlier_flags[i]:
           scalar_parts_W_E = aligned_dq_W_E[i].scalar()
           scalar_parts_B_H = aligned_dq_B_H[i].scalar()
-          if not np.allclose(scalar_parts_W_E.dq, scalar_parts_B_H.dq,
-                             atol=config.ransac_sample_rejection_scalar_part_equality_tolerance):
+          if not np.allclose(
+                  scalar_parts_W_E.dq, scalar_parts_B_H.dq,
+                  atol=config.ransac_sample_rejection_scalar_part_equality_tolerance):
             num_inlier_removed_due_to_scalar_part_inequality += 1
             inlier_flags[i] = False
 
@@ -835,14 +888,14 @@ def compute_hand_eye_calibration_RANSAC(dq_B_H_vec, dq_W_E_vec, config):
     # Abort RANSAC early based on prior about the outlier probability.
     if (not config.enable_exhaustive_search and config.ransac_enable_early_abort):
       s = config.ransac_sample_size
-      w = (1 - config.ransac_outlier_probability)  # Inlier probability
+      w = (1.0 - config.ransac_outlier_probability)  # Inlier probability
       w_pow_s = w ** s
-      required_iterations = (math.log(1 - config.ransac_success_probability_threshold) /
-                             math.log(1 - w_pow_s))
+      required_iterations = (math.log(1. - config.ransac_success_probability_threshold) /
+                             math.log(1. - w_pow_s))
       if (full_iterations > required_iterations):
         print("Reached a {}% probability that RANSAC succeeded in finding a sample "
               "containing only inliers, aborting ...".format(
-                  config.ransac_success_probability_threshold * 100))
+                  config.ransac_success_probability_threshold * 100.))
         break
   if not config.enable_exhaustive_search:
     print("Finished RANSAC.")

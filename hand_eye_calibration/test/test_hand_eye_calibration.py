@@ -41,7 +41,7 @@ class HandEyeCalibration(unittest.TestCase):
     hand_eye_config = HandEyeConfig()
     hand_eye_config.visualize = False
     hand_eye_config.ransac_max_number_iterations = 50
-    hand_eye_config.ransac_sample_size = 5
+    hand_eye_config.ransac_sample_size = 3
     (success, dq_H_E_estimated, rmse,
      num_inliers, num_poses_kept,
      runtime, singular_values,
@@ -88,7 +88,7 @@ class HandEyeCalibration(unittest.TestCase):
     hand_eye_config = HandEyeConfig()
     hand_eye_config.visualize = False
     hand_eye_config.ransac_max_number_iterations = 50
-    hand_eye_config.ransac_sample_size = 5
+    hand_eye_config.ransac_sample_size = 3
     (success, dq_H_E_estimated, rmse,
      num_inliers, num_poses_kept,
      runtime, singular_values,
@@ -137,7 +137,7 @@ class HandEyeCalibration(unittest.TestCase):
     hand_eye_config = HandEyeConfig()
     hand_eye_config.visualize = False
     hand_eye_config.ransac_max_number_iterations = 50
-    hand_eye_config.ransac_sample_size = 5
+    hand_eye_config.ransac_sample_size = 3
     (success, dq_H_E_estimated, rmse,
      num_inliers, num_poses_kept,
      runtime, singular_values,
