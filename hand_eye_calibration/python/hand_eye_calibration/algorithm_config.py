@@ -58,9 +58,13 @@ def get_RANSAC_classic_config(prefilter_poses):
   """
   Get config for the "RANSAC - Classic (pose inliers)" algorithm.
   """
-  hand_eye_config.algorithm_name = "RC"
 
   (time_alignment_config, hand_eye_config) = get_basic_config()
+
+  if prefilter_poses:
+    hand_eye_config.algorithm_name = "RC_filter"
+  else:
+    hand_eye_config.algorithm_name = "RC_no_filter"
 
   # Select distinctive poses based on skrew axis
   hand_eye_config.prefilter_poses_enabled = prefilter_poses
@@ -81,7 +85,10 @@ def get_RANSAC_scalar_part_inliers_config(prefilter_poses):
   """
   (time_alignment_config, hand_eye_config) = get_basic_config()
 
-  hand_eye_config.algorithm_name = "RS"
+  if prefilter_poses:
+    hand_eye_config.algorithm_name = "RS_filter"
+  else:
+    hand_eye_config.algorithm_name = "RS_no_filter"
 
   # Select distinctive poses based on skrew axis
   hand_eye_config.prefilter_poses_enabled = prefilter_poses
@@ -109,7 +116,7 @@ def get_exhaustive_search_pose_inliers_config():
   hand_eye_config.prefilter_poses_enabled = True
 
   # RANSAC
-  hand_eye_config.ransac_sample_size = 1
+  hand_eye_config.ransac_sample_size = 3
   hand_eye_config.enable_exhaustive_search = True
 
   # Inlier/Outlier detection
@@ -146,7 +153,10 @@ def get_baseline_config(prefilter_poses):
   """
   (time_alignment_config, hand_eye_config) = get_basic_config()
 
-  hand_eye_config.algorithm_name = "N"
+  if prefilter_poses:
+    hand_eye_config.algorithm_name = "baseline_filter"
+  else:
+    hand_eye_config.algorithm_name = "baseline_no_filter"
 
   hand_eye_config.use_baseline_approach = True
 

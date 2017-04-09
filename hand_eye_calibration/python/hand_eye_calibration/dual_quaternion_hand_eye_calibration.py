@@ -10,6 +10,7 @@ import math
 import matplotlib.pyplot as plt
 import numpy as np
 import random
+import sys
 import tf
 import timeit
 
@@ -229,14 +230,16 @@ def compute_hand_eye_calibration(dq_B_H_vec_inliers, dq_W_E_vec_inliers,
   # Compute SVD of T and check if only two singular values are almost equal to
   # zero. Take the corresponding right-singular vectors (v_7 and v_8)
   U, s, V = np.linalg.svd(t_matrix)
-  # print("singular values: {}".format(s))
 
   # Check if only the last two singular values are almost zero.
-  # for i, singular_value in enumerate(s):
-  #   if i < 6:
-  #     assert (singular_value >= 5e-2), s
-  #   else:
-  #     assert (singular_value < 5e-2), s
+  bad_singular_values = False
+  for i, singular_value in enumerate(s):
+    if i < 6:
+      if singular_value < 5e-1:
+        bad_singular_values = True
+    else:
+      if singular_value > 5e-1:
+        bad_singular_values = True
   v_7 = V[6, :].copy()
   v_8 = V[7, :].copy()
   # print("v_7: {}".format(v_7))
@@ -292,7 +295,7 @@ def compute_hand_eye_calibration(dq_B_H_vec_inliers, dq_W_E_vec_inliers,
 
   if (dq_H_E.q_rot.w < 0.):
     dq_H_E.dq = -dq_H_E.dq.copy()
-  return dq_H_E
+  return (dq_H_E, s, bad_singular_values)
 
 
 def prefilter_using_screw_axis(dq_W_E_vec_in, dq_B_H_vec_in, dot_product_threshold=0.95):
@@ -531,11 +534,22 @@ def compute_hand_eye_calibration_BASELINE(dq_B_H_vec, dq_W_E_vec, config):
   print("Running the hand-eye calibration with the remaining {} pairs of "
         "poses".format(len(dq_B_H_vec_inlier)))
 
-  # Compute hand-eye calibration on the inliers.
-  dq_H_E_estimated = compute_hand_eye_calibration(
-      dq_B_H_vec_inlier, dq_W_E_vec_inlier,
-      config.hand_eye_calibration_scalar_part_equality_tolerance)
-  dq_H_E_estimated.normalize()
+  try:
+    # Compute hand-eye calibration on the inliers.
+    (dq_H_E_estimated,
+     singular_values,
+     bad_singular_values) = compute_hand_eye_calibration(
+        dq_B_H_vec_inlier, dq_W_E_vec_inlier,
+        config.hand_eye_calibration_scalar_part_equality_tolerance)
+    dq_H_E_estimated.normalize()
+  except:
+    print("\n\n Hand-eye calibration FAILED! "
+          "algorithm_name: {} exception: \n\n".format(
+              config.algorithm_name, sys.exc_info()[0]))
+    end_time = timeit.default_timer()
+    runtime = end_time - start_time
+    return (False, None, (None, None),
+            None, num_poses_after_filtering, runtime, None, None)
 
   # Evaluate hand-eye calibration either on all poses aligned by the
   # sample index or only on the inliers.
@@ -571,7 +585,7 @@ def compute_hand_eye_calibration_BASELINE(dq_B_H_vec, dq_W_E_vec, config):
 
   return (True, dq_H_E_estimated,
           (rmse_position, rmse_orientation),
-          best_num_inliers, num_poses_after_filtering, runtime)
+          best_num_inliers, num_poses_after_filtering, runtime, singular_values, bad_singular_values)
 
 
 def compute_hand_eye_calibration_RANSAC(dq_B_H_vec, dq_W_E_vec, config):
@@ -609,11 +623,14 @@ def compute_hand_eye_calibration_RANSAC(dq_B_H_vec, dq_W_E_vec, config):
   best_rmse_position = np.inf
   best_rmse_orientation = np.inf
   best_estimated_dq_H_E = None
+  best_singular_values = None
+  best_singular_value_status = True
 
   all_sample_combinations = []
   max_number_samples = np.inf
   if not config.enable_exhaustive_search:
     print("Running RANSAC...")
+    print("Inlier classification method: {}".format(config.ransac_inlier_classification))
   else:
     all_sample_combinations = list(itertools.combinations(indices_set, config.ransac_sample_size))
     max_number_samples = len(all_sample_combinations)
@@ -624,8 +641,8 @@ def compute_hand_eye_calibration_RANSAC(dq_B_H_vec, dq_W_E_vec, config):
   full_iterations = 0
   prerejected_samples = 0
   while (full_iterations < config.ransac_max_number_iterations or
-         config.enable_exhaustive_search or
-         not (sample_number < max_number_samples)):
+         (config.enable_exhaustive_search and
+          sample_number < max_number_samples)):
 
     # Get sample, either at:
     #  - random (RANSAC)
@@ -682,12 +699,19 @@ def compute_hand_eye_calibration_RANSAC(dq_B_H_vec, dq_W_E_vec, config):
       assert config.ransac_sample_size >= 2, (
           "Cannot compute the hand eye calibration with a "
           "sample size of less than 2!")
-
-      # Compute initial hand-eye calibration on SAMPLES only.
-      dq_H_E_initial = compute_hand_eye_calibration(
-          aligned_samples_dq_B_H, aligned_samples_dq_W_E,
-          config.hand_eye_calibration_scalar_part_equality_tolerance)
-      dq_H_E_initial.normalize()
+      try:
+        # Compute initial hand-eye calibration on SAMPLES only.
+        (dq_H_E_initial,
+         singular_values,
+         bad_singular_values) = compute_hand_eye_calibration(
+            aligned_samples_dq_B_H, aligned_samples_dq_W_E,
+            config.hand_eye_calibration_scalar_part_equality_tolerance)
+        dq_H_E_initial.normalize()
+      except:
+        print("\n\n Hand-eye calibration FAILED! "
+              "algorithm_name: {} exception: \n\n".format(
+                  config.algorithm_name, sys.exc_info()[0]))
+        continue
 
       # Inliers are determined by evaluating the hand-eye calibration computed
       # based on the samples on all the poses and thresholding the RMSE of the
@@ -748,11 +772,19 @@ def compute_hand_eye_calibration_RANSAC(dq_B_H_vec, dq_W_E_vec, config):
       continue
 
     if (config.ransac_model_refinement or dq_H_E_initial is None):
+      try:
         # Refine hand-calibration using all inliers.
-      dq_H_E_refined = compute_hand_eye_calibration(
-          inlier_dq_B_H, inlier_dq_W_E,
-          config.hand_eye_calibration_scalar_part_equality_tolerance)
-      dq_H_E_refined.normalize()
+        (dq_H_E_refined,
+         singular_values,
+         bad_singular_values) = compute_hand_eye_calibration(
+            inlier_dq_B_H, inlier_dq_W_E,
+            config.hand_eye_calibration_scalar_part_equality_tolerance)
+        dq_H_E_refined.normalize()
+      except:
+        print("\n\n Hand-eye calibration FAILED! "
+              "algorithm_name: {} exception: \n\n".format(
+                  config.algorithm_name, sys.exc_info()[0]))
+        continue
     else:
       assert dq_H_E_initial is not None
       dq_H_E_refined = dq_H_E_initial
@@ -779,6 +811,8 @@ def compute_hand_eye_calibration_RANSAC(dq_B_H_vec, dq_W_E_vec, config):
       best_rmse_orientation = rmse_orientation_refined
       best_inlier_idx_set = sample_indices
       best_num_inliers = num_inliers
+      best_singular_values = singular_values
+      best_singular_value_status = bad_singular_values
 
       print("Found a new best sample: {}\n"
             "\t\tNumber of inliers: {}\n"
@@ -822,7 +856,8 @@ def compute_hand_eye_calibration_RANSAC(dq_B_H_vec, dq_W_E_vec, config):
     end_time = timeit.default_timer()
     runtime = end_time - start_time
     return (False, None, (best_rmse_position, best_rmse_orientation),
-            best_num_inliers, num_poses_after_filtering, runtime)
+            best_num_inliers, num_poses_after_filtering, runtime,
+            best_singular_values, best_singular_value_status)
 
   # Visualize best alignment.
   if config.visualize:
@@ -854,8 +889,14 @@ def compute_hand_eye_calibration_RANSAC(dq_B_H_vec, dq_W_E_vec, config):
             best_rmse_orientation, best_estimated_dq_H_E,
             pose_vec, np.linalg.norm(pose_vec[0:3])))
 
+  if best_singular_values is not None:
+    if best_singular_value_status:
+      print("The singular values of this solution are bad. "
+            "Either the smallest two are too big or the first 6 "
+            "are too small! singular values: {}".format(best_singular_values))
+
   end_time = timeit.default_timer()
   runtime = end_time - start_time
 
   return (True, best_estimated_dq_H_E, (best_rmse_position, best_rmse_orientation),
-          best_num_inliers, num_poses_after_filtering, runtime)
+          best_num_inliers, num_poses_after_filtering, runtime, best_singular_values, best_singular_value_status)
