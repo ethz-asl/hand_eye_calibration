@@ -548,8 +548,8 @@ def compute_hand_eye_calibration_RANSAC(dq_B_H_vec, dq_W_E_vec, config):
       (rmse_position,
        rmse_orientation,
        inlier_flags) = evaluate_alignment(poses_B_H, poses_W_H, config)
-      assert inlier_flags[0], ("The sample idx uses for alignment should be "
-                               "part of the inliers!")
+      assert inlier_flags[0], ("The sample idx used for alignment should be "
+                               "part of the inlier set!")
 
       num_inlier_removed_due_to_scalar_part_inequality = 0
       for i in range(0, num_poses):
@@ -562,7 +562,7 @@ def compute_hand_eye_calibration_RANSAC(dq_B_H_vec, dq_W_E_vec, config):
             inlier_flags[i] = False
 
       if num_inlier_removed_due_to_scalar_part_inequality > 0:
-        print("WARNING: An inliers selected based on the "
+        print("WARNING: At least one inlier selected based on the "
               "position/orientation error did not pass the scalar part "
               "equality test! Use tighter values for "
               "ransac_position_error_threshold_m and "
@@ -570,7 +570,7 @@ def compute_hand_eye_calibration_RANSAC(dq_B_H_vec, dq_W_E_vec, config):
               "Inliers removed: {}".format(
                   num_inlier_removed_due_to_scalar_part_inequality))
         # TODO(mfehr): Find a good way to tune the parameters.
-        assert False
+        continue
 
     elif config.ransac_inlier_classification == "scalar_part_equality":
       # Inliers are determined without computing an initial model but by simply
