@@ -50,6 +50,8 @@ from hand_eye_calibration.hand_eye_calibration_plotting_tools import (
 class HandEyeConfig:
 
   def __init__(self):
+    # Select distinctive poses based on skrew axis
+    self.prefilter_dot_product_threshold = 0.975
 
     # RANSAC
     self.ransac_sample_size = 3
@@ -177,10 +179,17 @@ def setup_t_matrix(dq_W_E_vec, dq_B_H_vec):
   return t_matrix.copy()
 
 
-def compute_hand_eye_calibration(dq_B_H_vec_inliers, dq_W_E_vec_inliers, scalar_part_tolerance=1e-2, enforce_same_non_dual_scalar_sign=True):
-  """Do the actual hand eye-calibration as described in the referenced paper."""
+def compute_hand_eye_calibration(dq_B_H_vec_inliers, dq_W_E_vec_inliers,
+                                 scalar_part_tolerance=1e-2,
+                                 enforce_same_non_dual_scalar_sign=True):
+  """
+  Do the actual hand eye-calibration as described in the referenced paper.
+  Assumes the outliers have already been removed and the scalar parts of
+  each pair are a match.
+  """
   n_quaternions = len(dq_B_H_vec_inliers)
 
+  # Verify that the first pose is at the origin.
   assert np.allclose(dq_B_H_vec_inliers[0].dq,
                      [0., 0., 0., 1.0, 0., 0., 0., 0.],
                      atol=1.e-8), dq_B_H_vec_inliers[0]
@@ -198,7 +207,6 @@ def compute_hand_eye_calibration(dq_B_H_vec_inliers, dq_W_E_vec_inliers, scalar_
 
   # 0. Stop alignment if there are still pairs that do not have matching scalar parts.
   for j in range(n_quaternions):
-    # Re-align all dual quaternion to the j-th dual quaternion.
     dq_B_H = dq_W_E_vec_inliers[j]
     dq_W_E = dq_B_H_vec_inliers[j]
 
@@ -282,6 +290,54 @@ def compute_hand_eye_calibration(dq_B_H_vec_inliers, dq_W_E_vec_inliers, scalar_
   if (dq_H_E.q_rot.w < 0.):
     dq_H_E.dq = -dq_H_E.dq.copy()
   return dq_H_E
+
+
+def prefilter_using_screw_axis(dq_W_E_vec_in, dq_B_H_vec_in, dot_product_threshold=0.95):
+  dq_W_E_vec = copy.deepcopy(dq_W_E_vec_in)
+  dq_B_H_vec = copy.deepcopy(dq_B_H_vec_in)
+  n_quaternions = len(dq_W_E_vec)
+  i = 0
+  while i < len(dq_W_E_vec):
+    dq_W_E_i = dq_W_E_vec[i]
+    dq_B_H_i = dq_B_H_vec[i]
+    screw_axis_W_E_i, rotation_W_E_i, translation_W_E_i = dq_W_E_i.screw_axis()
+    screw_axis_B_H_i, rotation_B_H_i, translation_B_H_i = dq_B_H_i.screw_axis()
+
+    if (np.linalg.norm(screw_axis_W_E_i) <= 1.e-12 or np.linalg.norm(screw_axis_B_H_i) <= 1.e-12):
+      dq_W_E_vec.pop(i)
+      dq_B_H_vec.pop(i)
+    else:
+      screw_axis_W_E_i = screw_axis_W_E_i / np.linalg.norm(screw_axis_W_E_i)
+      screw_axis_B_H_i = screw_axis_B_H_i / np.linalg.norm(screw_axis_B_H_i)
+
+      # TODO(ntonci): Add a check for small motion
+
+      j = i + 1
+      while j < len(dq_W_E_vec):
+        dq_W_E_j = dq_W_E_vec[j]
+        dq_B_H_j = dq_B_H_vec[j]
+        screw_axis_W_E_j, rotation_W_E_j, translation_W_E_j = dq_W_E_j.screw_axis()
+        screw_axis_B_H_j, rotation_B_H_j, translation_B_H_j = dq_B_H_j.screw_axis()
+
+        if (np.linalg.norm(screw_axis_W_E_j) <= 1.e-12 or np.linalg.norm(screw_axis_B_H_j) <= 1.e-12):
+          dq_W_E_vec.pop(j)
+          dq_B_H_vec.pop(j)
+        else:
+          screw_axis_W_E_j = screw_axis_W_E_j / np.linalg.norm(screw_axis_W_E_j)
+          screw_axis_B_H_j = screw_axis_B_H_j / np.linalg.norm(screw_axis_B_H_j)
+
+          if (np.inner(screw_axis_W_E_i, screw_axis_W_E_j) > dot_product_threshold):
+            dq_W_E_vec.pop(j)
+            dq_B_H_vec.pop(j)
+          elif (np.inner(screw_axis_B_H_i, screw_axis_B_H_j) > dot_product_threshold):
+            dq_W_E_vec.pop(j)
+            dq_B_H_vec.pop(j)
+          else:
+            j += 1
+      i += 1
+
+  assert i >= 2, "Not enough distinct poses found."
+  return dq_W_E_vec, dq_B_H_vec
 
 
 def evaluate_alignment(poses_A, poses_B, config, visualize=False):
@@ -382,9 +438,17 @@ def compute_hand_eye_calibration_RANSAC(dq_B_H_vec, dq_W_E_vec, config):
 
   num_poses = len(dq_W_E_vec)
 
-  # TODO(mfehr): put toncis stuff here.
-  num_poses_after_filtering = num_poses
-  # REMOVE LINE ABOVE
+  # Reject pairs whose motion is not informative,
+  # i.e. their screw axis dot product is large
+  dq_B_H_vec_filtered, dq_W_E_vec_filtered = prefilter_using_screw_axis(
+      dq_B_H_vec, dq_W_E_vec, config.prefilter_dot_product_threshold)
+  assert len(dq_W_E_vec_filtered) == len(dq_B_H_vec_filtered)
+  assert len(dq_B_H_vec) == num_poses
+  assert len(dq_W_E_vec) == num_poses
+  num_poses_after_filtering = len(dq_W_E_vec_filtered)
+
+  print("Ignore {} poses based on the screw axis".format(num_poses - num_poses_after_filtering))
+  print("Drawing samples from remaining {} poses".format(num_poses_after_filtering))
 
   indices_set = set(range(0, num_poses_after_filtering))
 
@@ -422,8 +486,8 @@ def compute_hand_eye_calibration_RANSAC(dq_B_H_vec, dq_W_E_vec, config):
     sample_number += 1
 
     # Extract sampled poses.
-    samples_dq_W_E = [dq_W_E_vec[idx] for idx in sample_indices]
-    samples_dq_B_H = [dq_B_H_vec[idx] for idx in sample_indices]
+    samples_dq_W_E = [dq_W_E_vec_filtered[idx] for idx in sample_indices]
+    samples_dq_B_H = [dq_B_H_vec_filtered[idx] for idx in sample_indices]
     assert len(samples_dq_W_E) == len(samples_dq_B_H)
     assert len(samples_dq_W_E) == config.ransac_sample_size
 
@@ -454,6 +518,8 @@ def compute_hand_eye_calibration_RANSAC(dq_B_H_vec, dq_W_E_vec, config):
     # such that the first sample pose is the first pose.
     aligned_dq_B_H = align_paths_at_index(dq_B_H_vec, sample_indices[0])
     aligned_dq_W_E = align_paths_at_index(dq_W_E_vec, sample_indices[0])
+    assert len(aligned_dq_B_H) == num_poses
+    assert len(aligned_dq_W_E) == num_poses
 
     # Compute model and determine inliers
     dq_H_E_initial = None
@@ -480,8 +546,8 @@ def compute_hand_eye_calibration_RANSAC(dq_B_H_vec, dq_W_E_vec, config):
     elif config.ransac_inlier_classification == "scalar_part_equality":
       # Inliers are determined without computing an initial model but by simply
       # selecting all poses that have a matching scalar part.
-      inlier_flags = [False] * num_poses_after_filtering
-      for i in range(0, num_poses_after_filtering):
+      inlier_flags = [False] * num_poses
+      for i in range(0, num_poses):
         scalar_parts_B_H = aligned_dq_B_H[i].scalar()
         scalar_parts_W_E = aligned_dq_W_E[i].scalar()
         if np.allclose(scalar_parts_W_E.dq, scalar_parts_B_H.dq,
