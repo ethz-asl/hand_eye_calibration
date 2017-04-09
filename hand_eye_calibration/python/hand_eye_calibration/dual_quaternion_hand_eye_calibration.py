@@ -50,7 +50,12 @@ from hand_eye_calibration.hand_eye_calibration_plotting_tools import (
 class HandEyeConfig:
 
   def __init__(self):
+
+    # General config.
     self.algorithm_name = ""
+    self.use_baseline_approach = False
+    self.min_num_inliers = 10
+    self.enable_exhaustive_search = False
 
     # Select distinctive poses based on skrew axis
     self.prefilter_poses_enabled = True
@@ -59,18 +64,13 @@ class HandEyeConfig:
     # RANSAC
     self.ransac_sample_size = 3
     self.ransac_sample_rejection_scalar_part_equality_tolerance = 1e-2
-    self.ransac_enable_exhaustive_search = False
     self.ransac_max_number_iterations = 20
     self.ransac_enable_early_abort = True
     self.ransac_outlier_probability = 0.5
     self.ransac_success_probability_threshold = 0.99
-
-    # Inlier/Outlier detection
-    # self.ransac_inlier_classification = "rmse_threshold"
     self.ransac_inlier_classification = "scalar_part_equality"
     self.ransac_position_error_threshold_m = 0.02
     self.ransac_orientation_error_threshold_deg = 1.0
-    self.ransac_min_num_inliers = 10
 
     # Model refinement
     self.ransac_model_refinement = True
@@ -441,6 +441,139 @@ def get_aligned_poses(dq_B_H_vec, dq_W_E_vec, dq_H_E_estimated):
   return (poses_B_H.copy(), poses_W_H.copy())
 
 
+def compute_hand_eye_calibration_BASELINE(dq_B_H_vec, dq_W_E_vec, config):
+  """Do the actual hand eye-calibration as described in the referenced paper."""
+  assert len(dq_W_E_vec) == len(dq_B_H_vec)
+  num_poses = len(dq_W_E_vec)
+
+  start_time = timeit.default_timer()
+
+  # Enforce the same sign of the rotation quaternion.
+  for i in range(num_poses):
+    dq_B_H = dq_B_H_vec[i]
+    dq_W_E = dq_W_E_vec[i]
+    if ((dq_W_E.q_rot.w < 0. and dq_B_H.q_rot.w > 0.) or
+            (dq_W_E.q_rot.w > 0. and dq_B_H.q_rot.w < 0.)):
+      dq_W_E_vec[i].dq = -dq_W_E_vec[i].dq.copy()
+
+  # 0.0 Reject pairs whose motion is not informative,
+  # i.e. their screw axis dot product is large
+  if config.prefilter_poses_enabled:
+    dq_B_H_vec_filtered, dq_W_E_vec_filtered = prefilter_using_screw_axis(
+        dq_B_H_vec, dq_W_E_vec, config.prefilter_dot_product_threshold)
+  num_poses_after_filtering = len(dq_W_E_vec_filtered)
+
+  best_idx = -1
+  best_num_inliers = config.min_num_inliers - 1
+  best_dq_W_E_vec_inlier = []
+  best_dq_B_H_vec_inlier = []
+
+  if config.enable_exhaustive_search:
+    print("Do exhaustive search to find biggest subset of inliers...")
+  else:
+    print("Search for first set of inliers bigger than {}...".format(config.min_num_inliers))
+
+  # 0.1 Reject pairs where scalar parts of dual quaternions do not match.
+  # Loop over all the indices to find an index of a pose pair.
+  for j in range(num_poses_after_filtering):
+    # Re-align all dual quaternion to the j-th dual quaternion.
+    dq_W_E_vec_aligned = align_paths_at_index(dq_W_E_vec_filtered, j)
+    dq_B_H_vec_aligned = align_paths_at_index(dq_B_H_vec_filtered, j)
+
+    dq_W_E_vec_inlier = []
+    dq_B_H_vec_inlier = []
+
+    # Loop over the indices again starting at the first index to find either:
+    # - The first set of inliers of at least size min_num_inliers
+    #       OR
+    # - The largest set of inliers using an exhaustive search
+    for i in range(0, num_poses_after_filtering):
+      dq_W_E = dq_W_E_vec_aligned[i]
+      dq_B_H = dq_B_H_vec_aligned[i]
+      scalar_parts_W_E = dq_W_E.scalar()
+      scalar_parts_B_H = dq_B_H.scalar()
+      # Append the inliers to the filtered dual quaternion vectors.
+      if np.allclose(scalar_parts_W_E.dq, scalar_parts_B_H.dq, atol=1e-2):
+        dq_W_E_vec_inlier.append(dq_W_E)
+        dq_B_H_vec_inlier.append(dq_B_H)
+
+    assert len(dq_W_E_vec_inlier) == len(dq_B_H_vec_inlier)
+
+    if config.enable_exhaustive_search:
+      has_the_most_inliers = (len(dq_W_E_vec_inlier) > best_num_inliers)
+      if has_the_most_inliers:
+        best_num_inliers = len(dq_W_E_vec_inlier)
+        best_idx = j
+        best_dq_W_E_vec_inlier = copy.deepcopy(dq_W_E_vec_inlier)
+        best_dq_B_H_vec_inlier = copy.deepcopy(dq_B_H_vec_inlier)
+        print("Found new best start idx: {} number of inliers: {}".format(best_idx, best_num_inliers))
+    else:
+      has_enough_inliers = (len(dq_W_E_vec_inlier) > config.min_num_inliers)
+      if has_enough_inliers:
+        best_idx = j
+        best_num_inliers = len(dq_W_E_vec_inlier)
+        break
+
+      if j + 1 >= num_poses_after_filtering:
+        assert False, "Not enough inliers found."
+
+  if config.enable_exhaustive_search:
+    assert best_idx != -1, "Not enough inliers found!"
+    dq_W_E_vec_inlier = best_dq_W_E_vec_filtered
+    dq_B_H_vec_inlier = best_dq_B_H_vec_inlier
+
+  aligned_dq_B_H = align_paths_at_index(dq_B_H_vec_inlier, best_idx)
+  aligned_dq_W_E = align_paths_at_index(dq_W_E_vec_inlier, best_idx)
+
+  print("Best start idx: {}".format(best_idx))
+  print("Removed {} outliers from the (prefiltered) poses.".format(
+      len(dq_B_H_vec_filtered) - len(dq_B_H_vec_inlier)))
+  print("Running the hand-eye calibration with the remaining {} pairs of "
+        "poses".format(len(dq_B_H_vec_inlier)))
+
+  # Compute hand-eye calibration on the inliers.
+  dq_H_E_estimated = compute_hand_eye_calibration(
+      dq_B_H_vec_inlier, dq_W_E_vec_inlier,
+      config.hand_eye_calibration_scalar_part_equality_tolerance)
+  dq_H_E_estimated.normalize()
+
+  # Evaluate hand-eye calibration either on all poses aligned by the
+  # sample index or only on the inliers.
+  if config.ransac_evaluate_refined_model_on_inliers_only:
+    (poses_B_H, poses_W_H) = get_aligned_poses(dq_B_H_vec_inlier,
+                                               dq_W_E_vec_inlier,
+                                               dq_H_E_estimated)
+  else:
+    aligned_dq_B_H = align_paths_at_index(dq_B_H_vec, best_idx)
+    aligned_dq_W_E = align_paths_at_index(dq_W_E_vec, best_idx)
+    (poses_B_H, poses_W_H) = get_aligned_poses(aligned_dq_B_H,
+                                               aligned_dq_W_E,
+                                               dq_H_E_estimated)
+
+  (rmse_position,
+   rmse_orientation,
+   inlier_flags) = evaluate_alignment(poses_B_H, poses_W_H, config)
+
+  end_time = timeit.default_timer()
+  runtime = end_time - start_time
+
+  pose_vec = dq_H_E_estimated.to_pose()
+  print("Solution found by aligned based on idx: {}\n"
+        "\t\tNumber of inliers: {}\n"
+        "\t\tRMSE position:     {:10.4f}\n"
+        "\t\tRMSE orientation:  {:10.4f}\n"
+        "\t\tdq_H_E:    {}\n"
+        "\t\tpose_H_E:  {}\n"
+        "\t\tTranslation norm:  {:10.4f}".format(
+            best_idx, best_num_inliers, rmse_position,
+            rmse_orientation, dq_H_E_estimated,
+            pose_vec, np.linalg.norm(pose_vec[0:3])))
+
+  return (True, dq_H_E_estimated,
+          (rmse_position, rmse_orientation),
+          best_num_inliers, num_poses_after_filtering, runtime)
+
+
 def compute_hand_eye_calibration_RANSAC(dq_B_H_vec, dq_W_E_vec, config):
   assert len(dq_W_E_vec) == len(dq_B_H_vec)
 
@@ -479,7 +612,7 @@ def compute_hand_eye_calibration_RANSAC(dq_B_H_vec, dq_W_E_vec, config):
 
   all_sample_combinations = []
   max_number_samples = np.inf
-  if not config.ransac_enable_exhaustive_search:
+  if not config.enable_exhaustive_search:
     print("Running RANSAC...")
   else:
     all_sample_combinations = list(itertools.combinations(indices_set, config.ransac_sample_size))
@@ -491,13 +624,13 @@ def compute_hand_eye_calibration_RANSAC(dq_B_H_vec, dq_W_E_vec, config):
   full_iterations = 0
   prerejected_samples = 0
   while (full_iterations < config.ransac_max_number_iterations or
-         config.ransac_enable_exhaustive_search or
+         config.enable_exhaustive_search or
          not (sample_number < max_number_samples)):
 
     # Get sample, either at:
     #  - random (RANSAC)
     #  - from the list of all possible samples (exhaustive search)
-    if config.ransac_enable_exhaustive_search:
+    if config.enable_exhaustive_search:
       sample_indices = list(all_sample_combinations[sample_number])
     else:
       sample_indices = random.sample(indices_set, config.ransac_sample_size)
@@ -610,7 +743,7 @@ def compute_hand_eye_calibration_RANSAC(dq_B_H_vec, dq_W_E_vec, config):
     num_inliers = len(inlier_dq_B_H)
 
     # Reject sample if not enough inliers.
-    if num_inliers < config.ransac_min_num_inliers:
+    if num_inliers < config.min_num_inliers:
       print("==> Not enough inliers ({})".format(num_inliers))
       continue
 
@@ -666,7 +799,7 @@ def compute_hand_eye_calibration_RANSAC(dq_B_H_vec, dq_W_E_vec, config):
     full_iterations += 1
 
     # Abort RANSAC early based on prior about the outlier probability.
-    if (not config.ransac_enable_exhaustive_search and config.ransac_enable_early_abort):
+    if (not config.enable_exhaustive_search and config.ransac_enable_early_abort):
       s = config.ransac_sample_size
       w = (1 - config.ransac_outlier_probability)  # Inlier probability
       w_pow_s = w ** s
@@ -677,7 +810,7 @@ def compute_hand_eye_calibration_RANSAC(dq_B_H_vec, dq_W_E_vec, config):
               "containing only inliers, aborting ...".format(
                   config.ransac_success_probability_threshold * 100))
         break
-  if not config.ransac_enable_exhaustive_search:
+  if not config.enable_exhaustive_search:
     print("Finished RANSAC.")
     print("RANSAC iterations: {}".format(full_iterations))
     print("RANSAC early rejected samples: {}".format(prerejected_samples))

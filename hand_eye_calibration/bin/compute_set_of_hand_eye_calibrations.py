@@ -11,6 +11,7 @@ from hand_eye_calibration.dual_quaternion import DualQuaternion
 from hand_eye_calibration.quaternion import Quaternion
 from hand_eye_calibration.dual_quaternion_hand_eye_calibration import (
     compute_hand_eye_calibration, compute_hand_eye_calibration_RANSAC,
+    compute_hand_eye_calibration_BASELINE,
     align_paths_at_index, evaluate_alignment, HandEyeConfig, compute_pose_error)
 from hand_eye_calibration.hand_eye_calibration_plotting_tools import plot_poses
 from hand_eye_calibration.csv_io import (
@@ -21,7 +22,8 @@ from hand_eye_calibration.algorithm_config import (
     get_basic_config, get_RANSAC_classic_config,
     get_RANSAC_scalar_part_inliers_config,
     get_exhaustive_search_pose_inliers_config,
-    get_exhaustive_search_scalar_part_inliers_config)
+    get_exhaustive_search_scalar_part_inliers_config,
+    get_baseline_config)
 
 if __name__ == "__main__":
   parser = argparse.ArgumentParser(description='Align pairs of poses.')
@@ -47,11 +49,10 @@ if __name__ == "__main__":
 
   # Config:
   (filtering_config, hand_eye_config) = get_RANSAC_scalar_part_inliers_config(True)
-
   # (filtering_config, hand_eye_config) = get_RANSAC_classic_config(True)
   # (filtering_config, hand_eye_config) = get_exhaustive_search_pose_inliers_config(True)
   # (filtering_config, hand_eye_config) = get_exhaustive_search_scalar_part_inliers_config(True)
-  # (filtering_config, hand_eye_config) = get_naive_config(True)
+  # (filtering_config, hand_eye_config) = get_baseline_config(True)
 
   hand_eye_config.visualize = args.visualize
   hand_eye_config.plot_every_nth_pose = args.plot_every_nth_pose
@@ -119,12 +120,25 @@ if __name__ == "__main__":
                  True, title="3D Poses Before Alignment")
 
     print("Computing hand-eye calibration...")
-    (success, dq_H_E, rmse, num_inliers, num_poses_kept, runtime) = compute_hand_eye_calibration_RANSAC(dual_quat_B_H_vec, dual_quat_W_E_vec,
-                                                                                                        hand_eye_config)
+
+    if hand_eye_config.use_baseline_approach:
+      (success, dq_H_E, rmse,
+       num_inliers, num_poses_kept,
+       runtime) = compute_hand_eye_calibration_BASELINE(
+          dual_quat_B_H_vec, dual_quat_W_E_vec, hand_eye_config)
+    else:
+      (success, dq_H_E, rmse,
+       num_inliers, num_poses_kept,
+       runtime) = compute_hand_eye_calibration_RANSAC(
+          dual_quat_B_H_vec, dual_quat_W_E_vec, hand_eye_config)
+
     results_dataset_names.append((pose_file_B_H, pose_file_W_E))
     results_success.append(success)
     results_dq_H_E.append(dq_H_E)
-    results_poses_H_E.append(dq_H_E.to_pose())
+    if dq_H_E is not None:
+      results_poses_H_E.append(dq_H_E.to_pose())
+    else:
+      results_poses_H_E.append(None)
     results_rmse.append(rmse)
     result_num_inliers.append(num_inliers)
     result_num_initial_poses.append(len(dual_quat_B_H_vec))
