@@ -29,7 +29,7 @@ def get_basic_config():
 
   # Select distinctive poses based on skrew axis
   hand_eye_config.prefilter_poses_enabled = False
-  hand_eye_config.prefilter_dot_product_threshold = 0.975
+  hand_eye_config.prefilter_dot_product_threshold = 0.95
 
   # RANSAC
   hand_eye_config.ransac_sample_size = 3
