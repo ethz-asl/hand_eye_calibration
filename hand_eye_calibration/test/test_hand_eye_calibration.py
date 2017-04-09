@@ -42,8 +42,11 @@ class HandEyeCalibration(unittest.TestCase):
     hand_eye_config.visualize = False
     hand_eye_config.ransac_max_number_iterations = 50
     hand_eye_config.ransac_sample_size = 5
-    (success, dq_H_E_estimated) = compute_hand_eye_calibration_RANSAC(dq_B_H_vec, dq_W_E_vec,
-                                                                      hand_eye_config)
+    (success, dq_H_E_estimated, rmse,
+     num_inliers, num_poses_kept,
+     runtime, singular_values,
+     bad_singular_values) = compute_hand_eye_calibration_RANSAC(
+        dq_B_H_vec, dq_W_E_vec, hand_eye_config)
     assert success, "Hand-eye calibration, failed!"
 
     pose_H_E_estimated = dq_H_E_estimated.to_pose()
@@ -86,8 +89,11 @@ class HandEyeCalibration(unittest.TestCase):
     hand_eye_config.visualize = False
     hand_eye_config.ransac_max_number_iterations = 50
     hand_eye_config.ransac_sample_size = 5
-    (success, dq_H_E_estimated) = compute_hand_eye_calibration_RANSAC(dq_B_H_vec, dq_W_E_vec,
-                                                                      hand_eye_config)
+    (success, dq_H_E_estimated, rmse,
+     num_inliers, num_poses_kept,
+     runtime, singular_values,
+     bad_singular_values) = compute_hand_eye_calibration_RANSAC(dq_B_H_vec, dq_W_E_vec,
+                                                                hand_eye_config)
     assert success, "Hand-eye calibration, failed!"
 
     pose_H_E_estimated = dq_H_E_estimated.to_pose()
@@ -132,8 +138,11 @@ class HandEyeCalibration(unittest.TestCase):
     hand_eye_config.visualize = False
     hand_eye_config.ransac_max_number_iterations = 50
     hand_eye_config.ransac_sample_size = 5
-    (success, dq_H_E_estimated) = compute_hand_eye_calibration_RANSAC(dq_B_H_vec, dq_W_E_vec,
-                                                                      hand_eye_config)
+    (success, dq_H_E_estimated, rmse,
+     num_inliers, num_poses_kept,
+     runtime, singular_values,
+     bad_singular_values) = compute_hand_eye_calibration_RANSAC(dq_B_H_vec, dq_W_E_vec,
+                                                                hand_eye_config)
     assert success, "Hand-eye calibration, failed!"
 
     pose_H_E_estimated = dq_H_E_estimated.to_pose()
