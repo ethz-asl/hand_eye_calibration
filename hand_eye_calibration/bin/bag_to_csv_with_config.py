@@ -49,7 +49,7 @@ if __name__ == '__main__':
       tf_target_frame = tf_frames['target'][i]
       print("Exporting poses of {} in {} frame".format(
           tf_source_frame, tf_target_frame))
-      # TODO(ff): Call tf_to_csv.py here.
+      # Setup the args for tf_to_csv.py.
       tf_call = copy.deepcopy(tf_arguments)
       tf_call.append('--bag')
       tf_call.append(bag_path + bag_name)
@@ -68,13 +68,12 @@ if __name__ == '__main__':
         cameras['cam_intrinsics']), equal_length_warning
     target_config = bag['target']
     print(len(cameras['cam_topics']))
-    # assert False
 
     for i in range(len(cameras['cam_topics'])):
       camera_topic = cameras['cam_topics'][i]
       camera_intrinsics = cameras['cam_intrinsics'][i]
       print("Exporting {} poses in world (target) frame.".format(camera_topic))
-      # TODO(ff): Call target_extractor_interface.py here.
+      # Setup the args for target_extractor_interface.py.
       te_call = copy.deepcopy(te_arguments)
       te_call.append('--bag')
       te_call.append(bag_path + bag_name)
