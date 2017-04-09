@@ -44,8 +44,8 @@ if __name__ == "__main__":
   hand_eye_config = HandEyeConfig()
   hand_eye_config.visualize = args.visualize
   hand_eye_config.visualize_plot_every_nth_pose = args.plot_every_nth_pose
-  hand_eye_config.ransac_inlier_classification = "scalar_part_equality"
-  # hand_eye_config.ransac_inlier_classification = "rmse_threshold"
+  # hand_eye_config.ransac_inlier_classification = "scalar_part_equality"
+  hand_eye_config.ransac_inlier_classification = "rmse_threshold"
 
   # Results:
   results_dataset_names = []

@@ -51,6 +51,7 @@ class HandEyeConfig:
 
   def __init__(self):
     # Select distinctive poses based on skrew axis
+    self.prefilter_poses_enabled = True
     self.prefilter_dot_product_threshold = 0.975
 
     # RANSAC
@@ -65,8 +66,8 @@ class HandEyeConfig:
     # Inlier/Outlier detection
     # self.ransac_inlier_classification = "rmse_threshold"
     self.ransac_inlier_classification = "scalar_part_equality"
-    self.ransac_position_error_threshold_m = 0.1
-    self.ransac_orientation_error_threshold_deg = 5.0
+    self.ransac_position_error_threshold_m = 0.02
+    self.ransac_orientation_error_threshold_deg = 1.0
     self.ransac_min_num_inliers = 10
 
     # Model refinement
@@ -440,12 +441,17 @@ def compute_hand_eye_calibration_RANSAC(dq_B_H_vec, dq_W_E_vec, config):
 
   # Reject pairs whose motion is not informative,
   # i.e. their screw axis dot product is large
-  dq_B_H_vec_filtered, dq_W_E_vec_filtered = prefilter_using_screw_axis(
-      dq_B_H_vec, dq_W_E_vec, config.prefilter_dot_product_threshold)
-  assert len(dq_W_E_vec_filtered) == len(dq_B_H_vec_filtered)
-  assert len(dq_B_H_vec) == num_poses
-  assert len(dq_W_E_vec) == num_poses
-  num_poses_after_filtering = len(dq_W_E_vec_filtered)
+  if config.prefilter_poses_enabled:
+    dq_B_H_vec_filtered, dq_W_E_vec_filtered = prefilter_using_screw_axis(
+        dq_B_H_vec, dq_W_E_vec, config.prefilter_dot_product_threshold)
+    assert len(dq_W_E_vec_filtered) == len(dq_B_H_vec_filtered)
+    assert len(dq_B_H_vec) == num_poses
+    assert len(dq_W_E_vec) == num_poses
+    num_poses_after_filtering = len(dq_W_E_vec_filtered)
+  else:
+    dq_B_H_vec_filtered = dq_B_H_vec
+    dq_W_E_vec_filtered = dq_W_E_vec
+    num_poses_after_filtering = num_poses
 
   print("Ignore {} poses based on the screw axis".format(num_poses - num_poses_after_filtering))
   print("Drawing samples from remaining {} poses".format(num_poses_after_filtering))
@@ -542,6 +548,29 @@ def compute_hand_eye_calibration_RANSAC(dq_B_H_vec, dq_W_E_vec, config):
       (rmse_position,
        rmse_orientation,
        inlier_flags) = evaluate_alignment(poses_B_H, poses_W_H, config)
+      assert inlier_flags[0], ("The sample idx uses for alignment should be "
+                               "part of the inliers!")
+
+      num_inlier_removed_due_to_scalar_part_inequality = 0
+      for i in range(0, num_poses):
+        if inlier_flags[i]:
+          scalar_parts_W_E = aligned_dq_W_E[i].scalar()
+          scalar_parts_B_H = aligned_dq_B_H[i].scalar()
+          if not np.allclose(scalar_parts_W_E.dq, scalar_parts_B_H.dq,
+                             atol=config.ransac_sample_rejection_scalar_part_equality_tolerance):
+            num_inlier_removed_due_to_scalar_part_inequality += 1
+            inlier_flags[i] = False
+
+      if num_inlier_removed_due_to_scalar_part_inequality > 0:
+        print("WARNING: An inliers selected based on the "
+              "position/orientation error did not pass the scalar part "
+              "equality test! Use tighter values for "
+              "ransac_position_error_threshold_m and "
+              "ransac_orientation_error_threshold_deg. "
+              "Inliers removed: {}".format(
+                  num_inlier_removed_due_to_scalar_part_inequality))
+        # TODO(mfehr): Find a good way to tune the parameters.
+        assert False
 
     elif config.ransac_inlier_classification == "scalar_part_equality":
       # Inliers are determined without computing an initial model but by simply
