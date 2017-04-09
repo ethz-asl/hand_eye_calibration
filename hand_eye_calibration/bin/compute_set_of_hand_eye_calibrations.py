@@ -54,7 +54,9 @@ if __name__ == "__main__":
 
   # Prepare result file.
   output_file = open(args.result_file, 'w')
-  output_file.write("algorithm_name,prefiltering,poses_B_H_csv_file,poses_W_E_csv_file,"
+  output_file.write("algorithm_name,pose_pair_num,"
+                    "iteration_num,prefiltering,"
+                    "poses_B_H_csv_file,poses_W_E_csv_file,"
                     "success,position_rmse,orientation_rmse,"
                     "num_inliers,num_input_poses,num_poses"
                     "after_filtering,runtime_s,"
@@ -271,5 +273,6 @@ if __name__ == "__main__":
             results_success[i], results_rmse[i][0], results_rmse[i][1],
             results_num_inliers[i], results_num_initial_poses[i],
             results_num_poses_kept[i], results_runtimes[i], loop_error_position,
-            loop_error_orientation, results_singular_values[i],
+            loop_error_orientation, np.array_str(
+                results_singular_values[i], max_line_width=1000000),
             results_bad_singular_value[i]))
