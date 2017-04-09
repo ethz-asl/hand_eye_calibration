@@ -17,6 +17,11 @@ from hand_eye_calibration.csv_io import (
     write_time_stamped_poses_to_csv_file, read_time_stamped_poses_from_csv_file)
 from hand_eye_calibration.time_alignment import (
     calculate_time_offset, compute_aligned_poses, FilteringConfig)
+from hand_eye_calibration.algorithm_config import (
+    get_basic_config, get_RANSAC_classic_config,
+    get_RANSAC_scalar_part_inliers_config,
+    get_exhaustive_search_pose_inliers_config,
+    get_exhaustive_search_scalar_part_inliers_config)
 
 if __name__ == "__main__":
   parser = argparse.ArgumentParser(description='Align pairs of poses.')
@@ -41,11 +46,7 @@ if __name__ == "__main__":
   num_pose_pairs = len(set_of_pose_pairs)
 
   # Config:
-  hand_eye_config = HandEyeConfig()
-  hand_eye_config.visualize = args.visualize
-  hand_eye_config.visualize_plot_every_nth_pose = args.plot_every_nth_pose
-  # hand_eye_config.ransac_inlier_classification = "scalar_part_equality"
-  hand_eye_config.ransac_inlier_classification = "rmse_threshold"
+  (filtering_config, hand_eye_config) = get_RANSAC_classic_config(True)
 
   # Results:
   results_dataset_names = []
@@ -75,8 +76,6 @@ if __name__ == "__main__":
           " poses in file: ", pose_file_W_E)
 
     print("Computing time offset...")
-    filtering_config = FilteringConfig()
-    # TODO(mfehr): get filtering config from args!
     time_offset = calculate_time_offset(times_B_H, quaternions_B_H, times_W_E,
                                         quaternions_W_E, filtering_config, args.visualize)
 

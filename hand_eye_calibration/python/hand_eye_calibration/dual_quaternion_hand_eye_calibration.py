@@ -438,6 +438,9 @@ def compute_hand_eye_calibration_RANSAC(dq_B_H_vec, dq_W_E_vec, config):
   start_time = timeit.default_timer()
 
   num_poses = len(dq_W_E_vec)
+  assert config.ransac_sample_size < num_poses, (
+      "The RANSAC sample size ({}) is bigger than the number "
+      "of poses ({})!".format(config.ransac_sample_size, num_poses))
 
   # Reject pairs whose motion is not informative,
   # i.e. their screw axis dot product is large
@@ -697,12 +700,12 @@ def compute_hand_eye_calibration_RANSAC(dq_B_H_vec, dq_W_E_vec, config):
         "\t\tNumber of inliers: {}\n"
         "\t\tRMSE position:     {:10.4f}\n"
         "\t\tRMSE orientation:  {:10.4f}\n"
-        "\t\tdq_H_E_initial:    {}\n"
         "\t\tdq_H_E_refined:    {}\n"
+        "\t\tpose_H_E_refined:  {}\n"
         "\t\tTranslation norm:  {:10.4f}".format(
             sample_indices, best_num_inliers, best_rmse_position,
-            best_rmse_orientation, dq_H_E_initial, dq_H_E_refined,
-            np.linalg.norm(pose_vec[0:3])))
+            best_rmse_orientation, best_estimated_dq_H_E,
+            pose_vec, np.linalg.norm(pose_vec[0:3])))
 
   end_time = timeit.default_timer()
   runtime = end_time - start_time
