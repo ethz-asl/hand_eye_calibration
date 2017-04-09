@@ -111,7 +111,7 @@ if __name__ == "__main__":
         poses_W_E = np.append(poses_W_E, np.array(
             [dual_quat_W_E_vec[i].to_pose().T]), axis=0)
       every_nth_element = args.plot_every_nth_pose
-      plot_poses(poses_B_H[::every_nth_element], poses_W_E[::every_nth_element],
+      plot_poses([poses_B_H[::every_nth_element], poses_W_E[::every_nth_element]],
                  True, title="3D Poses Before Alignment")
 
     print("Computing hand-eye calibration...")
@@ -178,7 +178,7 @@ if __name__ == "__main__":
         " m orientation: {} deg".format(error_position, error_orientation))
 
   assert len(poses_to_plot) == len(calibration_transformation_chain)
-  plot_poses(np.array(poses_to_plot), plot_arrows=True,
+  plot_poses([np.array(poses_to_plot)], plot_arrows=True,
              title="Hand-Eye Calibration Results - Closing The Loop")
 
   output_file = open(args.result_file, 'w')

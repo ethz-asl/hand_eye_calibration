@@ -88,7 +88,7 @@ if __name__ == "__main__":
       poses2 = np.append(poses2, np.array(
           [dual_quat_W_E_vec[i].to_pose().T]), axis=0)
     every_nth_element = args.plot_every_nth_pose
-    plot_poses(poses1[::every_nth_element], poses2[::every_nth_element],
+    plot_poses([poses1[::every_nth_element], poses2[::every_nth_element]],
                True, title="3D Poses Before Alignment")
 
   hand_eye_config = HandEyeConfig()

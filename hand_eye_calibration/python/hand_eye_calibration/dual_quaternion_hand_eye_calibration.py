@@ -703,8 +703,8 @@ def compute_hand_eye_calibration_RANSAC(dq_B_H_vec, dq_W_E_vec, config):
         poses_B_H, poses_W_H, config)
 
     every_nth_element = config.visualize_plot_every_nth_pose
-    plot_poses(poses_B_H[:: every_nth_element],
-               poses_W_H[:: every_nth_element],
+    plot_poses([poses_B_H[:: every_nth_element],
+                poses_W_H[:: every_nth_element]],
                True, title="3D Poses After Alignment")
 
   pose_vec = best_estimated_dq_H_E.to_pose()
