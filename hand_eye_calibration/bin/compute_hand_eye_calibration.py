@@ -9,8 +9,15 @@ import numpy as np
 from hand_eye_calibration.dual_quaternion import DualQuaternion
 from hand_eye_calibration.dual_quaternion_hand_eye_calibration import (
     compute_hand_eye_calibration, compute_hand_eye_calibration_RANSAC,
+    compute_hand_eye_calibration_BASELINE,
     align_paths_at_index, evaluate_alignment, HandEyeConfig)
 from hand_eye_calibration.hand_eye_calibration_plotting_tools import plot_poses
+from hand_eye_calibration.algorithm_config import (
+    get_basic_config, get_RANSAC_classic_config,
+    get_RANSAC_scalar_part_inliers_config,
+    get_exhaustive_search_pose_inliers_config,
+    get_exhaustive_search_scalar_part_inliers_config,
+    get_baseline_config)
 
 if __name__ == "__main__":
   parser = argparse.ArgumentParser(description='Align pairs of poses.')
@@ -91,11 +98,20 @@ if __name__ == "__main__":
     plot_poses([poses1[::every_nth_element], poses2[::every_nth_element]],
                True, title="3D Poses Before Alignment")
 
-  hand_eye_config = HandEyeConfig()
+  # TODO(mfehr): Add param to switch between algorithms.
+  # (_, hand_eye_config) = get_RANSAC_scalar_part_inliers_config(True)
+  (_, hand_eye_config) = get_baseline_config(True)
+
   hand_eye_config.visualize = args.visualize
   hand_eye_config.visualize_plot_every_nth_pose = args.plot_every_nth_pose
-  # self.ransac_inlier_classification = "scalar_part_equality"
-  # hand_eye_config.ransac_inlier_classification = "rmse_threshold"
 
-  compute_hand_eye_calibration_RANSAC(dual_quat_B_H_vec, dual_quat_W_E_vec,
-                                      hand_eye_config)
+  if hand_eye_config.use_baseline_approach:
+    (success, dq_H_E, rmse,
+     num_inliers, num_poses_kept,
+     runtime) = compute_hand_eye_calibration_BASELINE(
+        dual_quat_B_H_vec, dual_quat_W_E_vec, hand_eye_config)
+  else:
+    (success, dq_H_E, rmse,
+     num_inliers, num_poses_kept,
+     runtime) = compute_hand_eye_calibration_RANSAC(
+        dual_quat_B_H_vec, dual_quat_W_E_vec, hand_eye_config)
