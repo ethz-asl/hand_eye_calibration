@@ -105,8 +105,10 @@ def compute_angular_velocity_norms(quaternions, samples, smoothing_kernel_size, 
   angular_velocity_size = (len(quaternions) - 1)
   angular_velocity = np.zeros((angular_velocity_size, 3))
   for i in range(0, angular_velocity_size):
+    dt = samples[i + 1] - samples[i]
+    assert dt > 0.
     angular_velocity[i, :] = angular_velocity_between_quaternions(
-        quaternions[i], quaternions[i + 1], samples[i + 1] - samples[i])
+        quaternions[i], quaternions[i + 1], dt)
 
   angular_velocity_filtered = filter_and_smooth_angular_velocity(
       angular_velocity, smoothing_kernel_size, clipping_percentile, plot)
@@ -134,7 +136,7 @@ def calculate_time_offset(times_A, quaternions_A, times_B, quaternions_B, filter
   # Get the two mean time steps. Take the smaller one for the interpolation.
   dt_A = np.mean(np.diff(times_A))
   dt_B = np.mean(np.diff(times_B))
-  if dt_A <= dt_B:
+  if dt_A >= dt_B:
     dt = dt_A
   else:
     dt = dt_B
@@ -157,8 +159,10 @@ def calculate_time_offset(times_A, quaternions_A, times_B, quaternions_B, filter
       filtering_config.clipping_percentile_B, plot)
 
   # Adapt samples to filtered data.
+  length_before = len(samples_A)
   samples_A = samples_A[:len(angular_velocity_norms_A)]
   samples_B = samples_B[:len(angular_velocity_norms_B)]
+  assert len(samples_A) == length_before - 1
 
   # Plot the intput as it goes through the interpolation and filtering.
   if plot:

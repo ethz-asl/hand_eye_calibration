@@ -72,15 +72,16 @@ if __name__ == '__main__':
 
   print("Computing time offset...")
   filtering_config = FilteringConfig()
+  filtering_config.visualize = True
   # TODO(mfehr): get filtering config from args!
   time_offset = calculate_time_offset(times_B_H, quaternions_B_H, times_W_E,
-                                      quaternions_W_E, filtering_config)
+                                      quaternions_W_E, filtering_config, filtering_config.visualize)
 
   print("Final time offset: ", time_offset, "s")
 
   print("Computing aligned poses...")
   (aligned_poses_B_H, aligned_poses_W_E) = compute_aligned_poses(
-      time_stamped_poses_B_H, time_stamped_poses_W_E, time_offset, True)
+      time_stamped_poses_B_H, time_stamped_poses_W_E, time_offset, filtering_config.visualize)
 
   print("Writing aligned poses to CSV files...")
   write_time_stamped_poses_to_csv_file(aligned_poses_B_H,
