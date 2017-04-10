@@ -4,23 +4,8 @@ from matplotlib import pylab as plt
 import argparse
 import numpy as np
 
-if __name__ == '__main__':
-  parser = argparse.ArgumentParser(description=__doc__)
-  parser.add_argument('--csv_file_name', required=True,
-                      help='CSV file name from which to generate the box plots.')
 
-  args = parser.parse_args()
-  print("box_plot.py: Generating box plots from csv file: {}".format(
-      args.csv_file_name))
-
-  header = np.genfromtxt(args.csv_file_name, dtype=str,
-                         max_rows=1, delimiter=',')
-  data = np.genfromtxt(args.csv_file_name, dtype=None,
-                       skip_header=1, delimiter=',')
-
-  # print(header)
-  # print(data)
-
+def generate_box_plot(header, data):
   methods = []
   position_rmses = []
   orientation_rmses = []
@@ -69,3 +54,21 @@ if __name__ == '__main__':
   plt.xlim(x_ticks[0] - 2.5 * spacing, x_ticks[-1] + 2.5 * spacing)
 
   plt.show()
+
+if __name__ == '__main__':
+  parser = argparse.ArgumentParser(description=__doc__)
+  parser.add_argument('--csv_file_name', required=True,
+                      help='CSV file name from which to generate the box plots.')
+
+  args = parser.parse_args()
+  print("box_plot.py: Generating box plots from csv file: {}".format(
+      args.csv_file_name))
+
+  header = np.genfromtxt(args.csv_file_name, dtype=str,
+                         max_rows=1, delimiter=',')
+  data = np.genfromtxt(args.csv_file_name, dtype=None,
+                       skip_header=1, delimiter=',')
+
+  # print(header)
+  # print(data)
+  generate_box_plot(header, data)
