@@ -491,6 +491,9 @@ def compute_hand_eye_calibration_BASELINE(dq_B_H_vec, dq_W_E_vec, config):
   if config.prefilter_poses_enabled:
     dq_B_H_vec_filtered, dq_W_E_vec_filtered = prefilter_using_screw_axis(
         dq_B_H_vec, dq_W_E_vec, config.prefilter_dot_product_threshold)
+  else:
+    dq_B_H_vec_filtered = dq_B_H_vec
+    dq_W_E_vec_filtered = dq_W_E_vec
   num_poses_after_filtering = len(dq_W_E_vec_filtered)
 
   best_idx = -1
@@ -546,7 +549,8 @@ def compute_hand_eye_calibration_BASELINE(dq_B_H_vec, dq_W_E_vec, config):
 
       assert (j + 1) < num_poses_after_filtering, (
           "Reached over all filtered poses and couldn't find "
-          "enough inliers.")
+          "enough inliers. num_samples: {}, num_inliers: {}".format(
+              num_poses_after_filtering, len(dq_W_E_vec_inlier)))
 
   if config.enable_exhaustive_search:
     assert best_idx != -1, "Not enough inliers found!"
@@ -690,7 +694,8 @@ def compute_hand_eye_calibration_RANSAC(dq_B_H_vec, dq_W_E_vec, config):
   sample_number = 0
   full_iterations = 0
   prerejected_samples = 0
-  while (full_iterations < config.ransac_max_number_iterations or
+  while ((not config.enable_exhaustive_search and
+          full_iterations < config.ransac_max_number_iterations) or
          (config.enable_exhaustive_search and
           sample_number < max_number_samples)):
 
