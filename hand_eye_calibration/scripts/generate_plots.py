@@ -201,9 +201,9 @@ if __name__ == '__main__':
   print("Plotting the results of the follwoing methods: \n\t{}".format(
       ', '.join(methods)))
   print("Creating plots for the following datasets:\n{}".format(datasets))
-  # for dataset in datasets:
-  #   generate_box_plot(
-  #       methods,
-  #       [position_rmses_per_method[dataset][method] for method in methods],
-  #       [orientation_rmses_per_method[dataset][method] for method in methods])
+  for dataset in datasets:
+    generate_box_plot(
+        methods,
+        [position_rmses_per_method[dataset][method] for method in methods],
+        [orientation_rmses_per_method[dataset][method] for method in methods])
   generate_time_plot(methods, datasets, runtimes_per_method, colors)
