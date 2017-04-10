@@ -26,7 +26,7 @@ def plot_results(times_A, times_B, signal_A, signal_B,
 
   a1.get_xaxis().get_major_formatter().set_useOffset(False)
 
-  plt.ylabel('angular velocity [rad]')
+  plt.ylabel('angular velocity norm [rad]')
   plt.xlabel('time [s]')
   a1.set_title(
       "Before Time Alignment", y=title_position)
@@ -44,7 +44,7 @@ def plot_results(times_A, times_B, signal_A, signal_B,
   a3 = plt.subplot(1, 3, 2)
   a3.get_xaxis().get_major_formatter().set_useOffset(False)
   plt.ylabel('correlation')
-  plt.xlabel('time [s]')
+  plt.xlabel('sample idx offset')
   a3.set_title(
       "Correlation Result \n[Ideally has a single dominant peak.]",
       y=title_position)
@@ -53,7 +53,7 @@ def plot_results(times_A, times_B, signal_A, signal_B,
 
   a2 = plt.subplot(1, 3, 3)
   a2.get_xaxis().get_major_formatter().set_useOffset(False)
-  plt.ylabel('angular velocity [rad]')
+  plt.ylabel('angular velocity norm [rad]')
   plt.xlabel('time [s]')
   a2.set_title(
       "After Time Alignment", y=title_position)
