@@ -90,5 +90,5 @@ if __name__ == '__main__':
       te_call.append(target_config_path + target_config)
       te_call.append('--output_file')
       te_call.append(bag_name_without_suffix + '_' +
-                     'W_' + camera_topic.replace("/", "_") + '.csv')
+                     'W_' + camera_topic.replace("/", "_")[1:] + '.csv')
       call(te_call)
