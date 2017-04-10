@@ -1,0 +1,49 @@
+bags:
+  - 1:
+    name: 2017-04-09-18-13-10.bag
+    bag_path: /Users/ffurrer/Google Drive/fsr_2017/datasets/vicon_primesense/
+    intrinsics_path: /Users/ffurrer/catkin_ws/src/hand_eye_calibration/hand_eye_calibration/calib/
+    target_config_path: /Users/ffurrer/catkin_ws/src/hand_eye_calibration/hand_eye_calibration/calib/
+    cameras:
+      cam_topics:
+        - /camera/rgb/image_raw
+      cam_intrinsics:
+        - primesense_rgb.yaml
+    target: target.yaml
+    tf_frames:
+      source:
+        - prime_sense
+      target:
+        - vicon
+  - 2:
+    name: 2017-04-09-18-14-38.bag
+    bag_path: /Users/ffurrer/Google Drive/fsr_2017/datasets/vicon_primesense/
+    intrinsics_path: /Users/ffurrer/catkin_ws/src/hand_eye_calibration/hand_eye_calibration/calib/
+    target_config_path: /Users/ffurrer/catkin_ws/src/hand_eye_calibration/hand_eye_calibration/calib/
+    cameras:
+      cam_topics:
+        - /camera/rgb/image_raw
+      cam_intrinsics:
+        - primesense_rgb.yaml
+    target: target.yaml
+    tf_frames:
+      source:
+        - prime_sense
+      target:
+        - vicon
+  # - 3:
+  #   name: 2017-04-09-18-17-46.bag
+  #   bag_path: /Users/ffurrer/Google Drive/fsr_2017/datasets/vicon_primesense
+  #   intrinsics_path: /Users/ffurrer/catkin_ws/src/hand_eye_calibration/hand_eye_calibration/calib/
+  #   target_config_path: /Users/ffurrer/catkin_ws/src/hand_eye_calibration/hand_eye_calibration/calib/
+  #   cameras:
+  #     cam_topics:
+  #       - /camera/ir/image
+  #     cam_intrinsics:
+  #       - primesense_ir.yaml
+  #   target: target.yaml
+  #   tf_frames:
+  #     source:
+  #       - vicon
+  #     target:
+  #       - prime_sense
