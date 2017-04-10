@@ -53,17 +53,18 @@ if __name__ == "__main__":
   num_pose_pairs = len(set_of_pose_pairs)
 
   # Prepare result file.
-  output_file = open(args.result_file, 'w')
-  output_file.write("algorithm_name,pose_pair_num,"
-                    "iteration_num,prefiltering,"
-                    "poses_B_H_csv_file,poses_W_E_csv_file,"
-                    "success,position_rmse,orientation_rmse,"
-                    "num_inliers,num_input_poses,num_poses"
-                    "after_filtering,runtime_s,"
-                    "loop_error_position_m,"
-                    "loop_error_orientation_deg,"
-                    "singular_values,"
-                    "bad_singular_values\n")
+  if not os.path.exists(args.result_file):
+    output_file = open(args.result_file, 'w')
+    output_file.write("algorithm_name,pose_pair_num,"
+                      "iteration_num,prefiltering,"
+                      "poses_B_H_csv_file,poses_W_E_csv_file,"
+                      "success,position_rmse,orientation_rmse,"
+                      "num_inliers,num_input_poses,num_poses"
+                      "after_filtering,runtime_s,"
+                      "loop_error_position_m,"
+                      "loop_error_orientation_deg,"
+                      "singular_values,"
+                      "bad_singular_values\n")
 
   # Prepare folders.
   if not os.path.exists('dq_H_E'):
