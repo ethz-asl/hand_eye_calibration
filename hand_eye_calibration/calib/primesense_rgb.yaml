@@ -1,0 +1,23 @@
+distortion:
+  parameters:
+    rows: 4
+    cols: 1
+    data:
+      - 0.022006764658242854
+      - -0.07771627929451548
+      - -0.0006895353630624724
+      - -0.0010766465371629735
+  type: radial-tangential
+type: pinhole
+label: cam0
+line-delay-nanoseconds: 0
+image_width: 640
+image_height: 480
+intrinsics:
+  rows: 4
+  cols: 1
+  data:
+    - 527.2321847923051
+    - 526.5367185123114
+    - 312.28955212572856
+    - 237.85422920476498

@@ -64,12 +64,17 @@ if __name__ == '__main__':
     cameras = bag['cameras']
     equal_length_warning = ("Camera topics and intrinsic calibrations should "
                             "have equal length.")
-    assert len(cameras['cam_topics']) == len(
-        cameras['cam_intrinsics']), equal_length_warning
+    if cameras is None:
+      num_camera_topics = 0
+      num_camera_intrinsics = 0
+    else:
+      num_camera_topics = len(cameras['cam_topics'])
+      num_camera_intrinsics = len(
+          cameras['cam_intrinsics'])
+    assert num_camera_topics == num_camera_intrinsics, equal_length_warning
     target_config = bag['target']
-    print(len(cameras['cam_topics']))
 
-    for i in range(len(cameras['cam_topics'])):
+    for i in range(num_camera_topics):
       camera_topic = cameras['cam_topics'][i]
       camera_intrinsics = cameras['cam_intrinsics'][i]
       print("Exporting {} poses in world (target) frame.".format(camera_topic))
@@ -85,5 +90,5 @@ if __name__ == '__main__':
       te_call.append(target_config_path + target_config)
       te_call.append('--output_file')
       te_call.append(bag_name_without_suffix + '_' +
-                     'W_' + camera_topic.replace("/", "_")[-1] + '.csv')
+                     'W_' + camera_topic.replace("/", "_")[1:] + '.csv')
       call(te_call)
