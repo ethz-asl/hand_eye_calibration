@@ -3,6 +3,7 @@
 from matplotlib import pylab as plt
 from matplotlib.font_manager import FontProperties
 import numpy as np
+import matplotlib
 
 font = FontProperties()
 font.set_size('small')
@@ -18,31 +19,52 @@ def plot_results(times_A, times_B, signal_A, signal_B,
 
   title_position = 1.05
 
-  fig.suptitle("Time Alignment", fontsize='24')
+  matplotlib.rcParams.update({'font.size': 20})
+
+  # fig.suptitle("Time Alignment", fontsize='24')
   a1 = plt.subplot(1, 3, 1)
+
+  a1.get_xaxis().get_major_formatter().set_useOffset(False)
+
+  plt.ylabel('angular velocity norm [rad]')
+  plt.xlabel('time [s]')
   a1.set_title(
-      "Before Time Alignment \n[A = red, B = blue]", y=title_position)
+      "Before Time Alignment", y=title_position)
   plt.hold("on")
-  plt.plot(times_A, signal_A, c='r')
-  plt.plot(times_B, signal_B, c='b')
+
+  min_time = min(np.amin(times_A), np.amin(times_B))
+  times_A_zeroed = times_A - min_time
+  times_B_zeroed = times_B - min_time
+
+  plt.plot(times_A_zeroed, signal_A, c='r')
+  plt.plot(times_B_zeroed, signal_B, c='b')
 
   times_A_shifted = times_A + time_offset
 
   a3 = plt.subplot(1, 3, 2)
+  a3.get_xaxis().get_major_formatter().set_useOffset(False)
+  plt.ylabel('correlation')
+  plt.xlabel('sample idx offset')
   a3.set_title(
-      "Convolution Result \n[Ideally has a single dominant peak.]",
+      "Correlation Result \n[Ideally has a single dominant peak.]",
       y=title_position)
   plt.hold("on")
   plt.plot(np.arange(-len(signal_A) + 1, len(signal_B)), convoluted_signals)
 
   a2 = plt.subplot(1, 3, 3)
+  a2.get_xaxis().get_major_formatter().set_useOffset(False)
+  plt.ylabel('angular velocity norm [rad]')
+  plt.xlabel('time [s]')
   a2.set_title(
-      "After Time Alignment \n[A = red, B = blue]", y=title_position)
+      "After Time Alignment", y=title_position)
   plt.hold("on")
-  plt.plot(times_A_shifted, signal_A, c='r')
-  plt.plot(times_B, signal_B, c='b')
+  min_time = min(np.amin(times_A_shifted), np.amin(times_B))
+  times_A_shifted_zeroed = times_A_shifted - min_time
+  times_B_zeroed = times_B - min_time
+  plt.plot(times_A_shifted_zeroed, signal_A, c='r')
+  plt.plot(times_B_zeroed, signal_B, c='b')
 
-  plt.subplots_adjust(left=0.025, right=0.975, top=0.8, bottom=0.05)
+  plt.subplots_adjust(left=0.04, right=0.99, top=0.8, bottom=0.15)
 
   if plt.get_backend() == 'TkAgg':
     mng = plt.get_current_fig_manager()
