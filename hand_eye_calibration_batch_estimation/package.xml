@@ -1,0 +1,26 @@
+<?xml version="1.0"?>
+<package format="2">
+  <name>hand_eye_calibration_batch_estimation</name>
+  <version>0.0.0</version>
+  <description>The hand_eye_calibration_batch_estimation package.</description>
+
+  <maintainer email="fadri.furrer@mavt.ethz.ch">Fadri Furrer</maintainer>
+  <maintainer email="marius.fehr@mavt.ethz.ch">Marius Fehr</maintainer>
+
+  <license>BSD-3</license>
+
+  <url type="website">https://github.com/ethz-asl/hand_eye_calibration_batch_estimation/wiki</url>
+
+  <author email="fadri.furrer@mavt.ethz.ch">Fadri Furrer</author>
+  <author email="marius.fehr@mavt.ethz.ch">Marius Fehr</author>
+  <author email="tonci.novkovic@mavt.ethz.ch">Tonci Novkovic</author>
+  <author email="thomas.schneider@mavt.ethz.ch">Thomas Schneider</author>
+
+  <buildtool_depend>catkin</buildtool_depend>
+  <buildtool_depend>catkin_simple</buildtool_depend>
+
+  <depend>gflags_catkin</depend>
+  <depend>glog_catkin</depend>
+  <depend>oomact</depend>
+
+</package>
