@@ -2,13 +2,11 @@
 from hand_eye_calibration.time_alignment import (
     calculate_time_offset, compute_aligned_poses, FilteringConfig)
 from hand_eye_calibration.quaternion import Quaternion
-from hand_eye_calibration.quaternion import Quaternion
 from hand_eye_calibration.csv_io import (
     write_time_stamped_poses_to_csv_file, read_time_stamped_poses_from_csv_file)
 
 import argparse
 import numpy as np
-import csv
 
 if __name__ == '__main__':
   """
