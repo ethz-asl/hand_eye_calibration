@@ -26,7 +26,7 @@ if __name__ == "__main__":
       help='The path to the file containing the first poses. (e.g. Hand poses in Body frame)')
   parser.add_argument(
       '--aligned_poses_H_B_csv_file', type=str,
-      help='Alternative input file for the first poses. (e.g. Body poses in Ehe frame)')
+      help='Alternative input file for the first poses. (e.g. Body poses in Eye frame)')
   parser.add_argument(
       '--aligned_poses_W_E_csv_file', type=str,
       help='The path to the file containing the second poses. (e.g. Eye poses in World frame)')
