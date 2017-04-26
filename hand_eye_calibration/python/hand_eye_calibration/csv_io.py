@@ -22,6 +22,7 @@ def read_time_stamped_poses_from_csv_file(csv_file, JPL_quaternion_format=False)
 
   quaternions = []
   for pose in poses:
+    pose[3:] /= np.linalg.norm(pose[3:])
     if JPL_quaternion_format:
       quaternion_JPL = np.array([-pose[3], -pose[4], -pose[5], pose[6]])
       quaternions.append(Quaternion(q=quaternion_JPL))
