@@ -309,5 +309,6 @@ def angular_velocity_between_quaternions(q1, q2, t):
   # Ensure positive w.
   if q1_q2_inv.w < 0.:
     q1_q2_inv = -q1_q2_inv
+  q1_q2_inv.normalize();
   angle_axis = q1_q2_inv.angle_axis()
   return 0.5 / t * angle_axis[3] * angle_axis[0:3]
