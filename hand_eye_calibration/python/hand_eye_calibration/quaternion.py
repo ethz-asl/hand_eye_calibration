@@ -121,7 +121,7 @@ class Quaternion(object):
     return cls(q=q.q.copy())
 
   def angle_axis(self):
-    """ Returns the axis and angle of a queternion.
+    """ Returns the axis and angle of a quaternion.
 
     The output format is np.array([x, y, z, angle]).
     """
