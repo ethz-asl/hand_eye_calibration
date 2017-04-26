@@ -1,15 +1,15 @@
 <?xml version="1.0"?>
 <package format="2">
-  <name>hand_eye_calibration</name>
+  <name>hand_eye_calibration_target_extractor</name>
   <version>0.0.0</version>
-  <description>The hand_eye_calibration package.</description>
+  <description>The hand_eye_calibration_target_extractor package.</description>
 
   <maintainer email="fadri.furrer@mavt.ethz.ch">Fadri Furrer</maintainer>
   <maintainer email="marius.fehr@mavt.ethz.ch">Marius Fehr</maintainer>
 
   <license>BSD-3</license>
 
-  <url type="website">https://github.com/ethz-asl/hand_eye_calibration/wiki</url>
+  <url type="website">https://github.com/ethz-asl/hand_eye_calibration_target_extractor/wiki</url>
 
   <author email="fadri.furrer@mavt.ethz.ch">Fadri Furrer</author>
   <author email="marius.fehr@mavt.ethz.ch">Marius Fehr</author>
@@ -19,6 +19,13 @@
   <buildtool_depend>catkin</buildtool_depend>
   <buildtool_depend>catkin_simple</buildtool_depend>
 
+  <depend>aslam_cv_calibration</depend>
+  <depend>aslam_cv_cameras</depend>
+  <depend>aslam_cv_common</depend>
+  <depend>aslam_cv_geometric_vision</depend>
+  <depend>cv_bridge</depend>
+  <depend>gflags_catkin</depend>
+  <depend>glog_catkin</depend>
   <depend>rosbag</depend>
-  <depend>rospy</depend>
+  <depend>roscpp</depend>
 </package>

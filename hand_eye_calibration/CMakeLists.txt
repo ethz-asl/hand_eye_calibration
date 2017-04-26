@@ -4,11 +4,7 @@ project(hand_eye_calibration)
 find_package(catkin_simple REQUIRED)
 catkin_simple(ALL_DEPS_REQUIRED)
 
-add_definitions(--std=c++11)
-
 catkin_python_setup()
-
-cs_add_executable(target_extractor src/target_extractor.cc)
 
 cs_install()
 cs_export()
