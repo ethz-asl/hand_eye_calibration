@@ -1,5 +1,6 @@
 #include <fstream>
 #include <limits>
+#include <memory>
 
 #include <glog/logging.h>
 #include <Eigen/Core>
@@ -8,6 +9,8 @@
 #include <gflags/gflags.h>
 
 #include <sm/BoostPropertyTree.hpp>
+#include <sm/value_store/LayeredValueStore.hpp>
+#include <sm/value_store/PrefixedValueStore.hpp>
 #include <sm/boost/null_deleter.hpp>
 
 #include <aslam/calibration/model/FrameGraphModel.h>
@@ -31,7 +34,9 @@ DEFINE_string(
     "Pose2 input file. "
     "format: [frame_id, x[mm], y[mm], z[mm], x, y, z, w]");
 
-DEFINE_string(config_file, "config.info", "Config file. ");
+DEFINE_string(config_file, "config.info", "Configuration file.");
+DEFINE_string(init_guess_file, "initial_guess.json", "Initial guess for the spatiotemporal extrinsics of the second sensor w.r.t. to the first.");
+DEFINE_string(output_file, "output.json", "Output for the spatiotemporal extrinsics of the second sensor w.r.t. to the first.");
 DEFINE_bool(use_jpl, false, "Use JPL quaternion convention.");
 
 Eigen::Vector4d toInternalQuaternionConvention(const Eigen::Vector4d & q){
@@ -48,12 +53,14 @@ class SimpleModelFrame : public Frame, public NamedMinimal {
 SimpleModelFrame world("world");
 SimpleModelFrame body("body");
 
-ValueStoreRef valueStoreFromFile(std::string filePath){
+ValueStoreRef valueStoreFromFile(std::string filePath, sm::BoostPropertyTree * bptPtr = nullptr){
   sm::BoostPropertyTree bpt;
-  bpt.loadInfo(filePath);
+  if(bptPtr){
+    *bptPtr = bpt;
+  }
+  bpt.load(filePath);
   return ValueStoreRef(bpt);
 }
-
 
 void readPosesFromCsv(const std::string & path, PoseSensor & poseSensor){
     std::ifstream indata(path);
@@ -108,7 +115,12 @@ int main(int argc, char ** argv){
   google::InstallFailureSignalHandler();
 
   auto vsConfig = valueStoreFromFile(FLAGS_config_file);
-  auto vsModel = vsConfig.getChild("model");
+  sm::BoostPropertyTree initGuessFileBpt;
+  auto vsInitGuess = valueStoreFromFile(FLAGS_init_guess_file, &initGuessFileBpt);
+  auto vsModel = ValueStoreRef(new sm::LayeredValueStore(
+      ValueStoreRef(new sm::PrefixedValueStore(vsInitGuess, PrefixedValueStore::PrefixMode::REMOVE, "pose2")),
+      vsConfig.getChild("model")
+    ));
 
   FrameGraphModel model(vsModel, nullptr, {&body, &world});
   PoseSensor pose1Sensor(model, "pose1", vsModel);
@@ -131,6 +143,11 @@ int main(int argc, char ** argv){
   writePosesToCsv(FLAGS_pose1csv + ".out", *c, pose1Sensor, dt);
   writePosesToCsv(FLAGS_pose2csv + ".out", *c, pose2Sensor, dt);
 
-  std::cout << "Finished calibration: pose2Sensor.p=" << std::endl << pose2Sensor.getTranslationToParent() <<
-      "pose2Sensor.q=" << std::endl << fromInternalQuaternionConvention(pose2Sensor.getRotationQuaternionToParent()) << std::endl;
+  for(auto && c : model.getCalibrationVariables()){
+    c->updateStore();
+  }
+  if(!FLAGS_output_file.empty()){
+    LOG(INFO) << "Writing output to " << FLAGS_output_file <<".";
+    initGuessFileBpt.save(FLAGS_output_file);
+  }
 }
