@@ -39,10 +39,16 @@ if __name__ == '__main__':
       help='Path to the CSV file where the aligned poses will be stored. (e.g. Eye poses in World frame)')
 
   parser.add_argument(
+      '--time_offset_output_csv_file', type=str,
+      help='Write estimated time offset to this file in spatial-extrinsics csv format')
+
+  parser.add_argument(
       '--quaternion_format',
       default='Hamilton',
       help='\'Hamilton\' [Default] or \'JPL\'. The input (and data in the output files) ' +
       'will be converted to Hamiltonian quaternions.')
+
+  parser.add_argument('--visualize', type=bool, default=False, help='Visualize the poses.')
 
   args = parser.parse_args()
 
@@ -70,7 +76,7 @@ if __name__ == '__main__':
 
   print("Computing time offset...")
   filtering_config = FilteringConfig()
-  filtering_config.visualize = True
+  filtering_config.visualize = args.visualize
   # TODO(mfehr): get filtering config from args!
   time_offset = calculate_time_offset(times_B_H, quaternions_B_H, times_W_E,
                                       quaternions_W_E, filtering_config, filtering_config.visualize)
@@ -86,3 +92,8 @@ if __name__ == '__main__':
                                        args.aligned_poses_B_H_csv_file)
   write_time_stamped_poses_to_csv_file(aligned_poses_W_E,
                                        args.aligned_poses_W_E_csv_file)
+
+  if args.time_offset_output_csv_file is not None:
+      print("Writing time_offset to %s." % args.time_offset_output_csv_file)
+      from hand_eye_calibration.csv_io import write_double_numpy_array_to_csv_file
+      write_double_numpy_array_to_csv_file(np.array((time_offset, )), args.time_offset_output_csv_file);
