@@ -27,7 +27,7 @@ class TargetExtractorConfig(object):
 
 def call_target_extractor(target_extractor_config):
   print("Extracting images from bag: {}.".format(te_config.bag_file_name))
-  te_arguments = ["rosrun", "hand_eye_calibration", "target_extractor"]
+  te_arguments = ["rosrun", "hand_eye_calibration_target_extractor", "target_extractor"]
   te_arguments.append("--bag")
   te_arguments.append(bag_path)
   te_arguments.append("--topic")
