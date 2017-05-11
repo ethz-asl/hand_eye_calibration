@@ -19,7 +19,7 @@ line_width = 2
 def generate_box_plot(dataset, methods, position_rmses, orientation_rmses):
 
   num_methods = len(methods)
-  x_ticks = np.linspace(0, 1, num_methods)
+  x_ticks = np.linspace(0., 1., num_methods)
 
   width = 0.3 / num_methods
   spacing = 0.3 / num_methods
@@ -57,7 +57,7 @@ def generate_box_plot(dataset, methods, position_rmses, orientation_rmses):
 def generate_time_plot(methods, datasets, runtimes_per_method, colors):
   num_methods = len(methods)
   num_datasets = len(datasets)
-  x_ticks = np.linspace(0, 1, num_methods)
+  x_ticks = np.linspace(0., 1., num_methods)
 
   width = 0.6 / num_methods / num_datasets
   spacing = 0.4 / num_methods / num_datasets
@@ -170,7 +170,7 @@ if __name__ == '__main__':
     dataset = row[17]
 
     if not success:
-      # TODO(ff): Think of what to do here.
+      # TODO(ff): Create a plot with the success rate?
       continue
 
     if dataset in datasets:
