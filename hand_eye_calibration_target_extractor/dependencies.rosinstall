@@ -1,0 +1,12 @@
+- git:
+    local-name: catkin_simple
+    uri: https://github.com/catkin/catkin_simple.git
+- git:
+    local-name: aslam_cv2 # TODO get rid of aslam_cv2 as dependency ?
+    uri: git@github.com:ethz-asl/aslam_cv2
+- git:
+    local-name: gflags_catkin
+    uri: https://github.com/ethz-asl/gflags_catkin
+- git:
+    local-name: glog_catkin
+    uri: https://github.com/ethz-asl/glog_catkin
