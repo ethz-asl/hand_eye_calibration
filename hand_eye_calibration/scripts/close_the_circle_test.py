@@ -27,8 +27,9 @@ def run(cmd):
   import subprocess, shlex
   args = shlex.split(cmd)
   proc = subprocess.Popen(args)
-  proc.wait()
-  
+  exit_code = proc.wait()
+  if exit_code != 0:
+    raise Exception("Cmd '%s' returned nozero exit code : %d" % (cmd, exit_code))
 
 def getMTimes(inputs):
   return [os.path.getmtime(i) for i in inputs if os.path.exists(i)]
