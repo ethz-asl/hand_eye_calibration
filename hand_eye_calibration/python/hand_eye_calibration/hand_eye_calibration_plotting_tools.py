@@ -34,7 +34,7 @@ def compute_bbox_3D(poses_list):
   return (np.amax(bbox_max, axis=0), np.amin(bbox_min, axis=0))
 
 
-def plot_poses(poses_list, plot_arrows=True, title=""):
+def plot_poses(poses_list, plot_arrows=True, title="", blocking=True):
   title_position = 1.05
   fig = plt.figure()
   plt.clf()
@@ -111,7 +111,7 @@ def plot_poses(poses_list, plot_arrows=True, title=""):
           arrowstyle="-|>",
           color="b")
       ax.add_artist(a)
-  plt.show(block=True)
+  plt.show(block=blocking)
 
 
 def plot_alignment_errors(errors_position, rmse_pose, errors_orientation, rmse_orientation):
