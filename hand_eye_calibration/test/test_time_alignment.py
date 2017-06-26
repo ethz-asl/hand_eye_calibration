@@ -12,11 +12,21 @@ from scipy import signal
 import numpy as np
 import numpy.testing as npt
 import math
-from matplotlib import pylab as plt
+import matplotlib.pyplot as plt
 import copy
 
 
+def plot_alignment(data_no_drops, data_with_drops, blocking=False):
+  plt.subplot(2, 1, 1)
+  plt.plot(data_no_drops)
+  plt.subplot(2, 1, 2)
+  plt.plot(data_with_drops)
+  plt.show(block=blocking)
+  plt.close()
+
+
 class TimeAlignment(unittest.TestCase):
+  make_plots_blocking = False
   n_samples = 100.
   q1_initial = Quaternion(0, 0, 0, 1)
   q1_final = Quaternion(np.sqrt(2.) / 2., 0, 0, np.sqrt(2.) / 2.)
@@ -59,7 +69,7 @@ class TimeAlignment(unittest.TestCase):
   def test_time_alignment(self):
     time_offset = calculate_time_offset_from_signals(
         self.t1s[0:-1], self.angular_velocity1_norms, self.t2s[0:-1],
-        self.angular_velocity2_norms, True)
+        self.angular_velocity2_norms, plot=True, block=False)
     print(time_offset)
     # TODO(ff): Finish this test.
 
@@ -87,13 +97,8 @@ class TimeAlignment(unittest.TestCase):
         ((config.overall_drop_percentage / 100.0) * float(test_size))
 
     print("expected_test_size: {}".format(expected_test_size))
-
     # assert abs(len(test) - expected_test_size) < 1e-8
-    plt.subplot(2, 1, 1)
-    plt.plot(test_before)
-    plt.subplot(2, 1, 2)
-    plt.plot(test)
-    plt.show()
+    plot_alignment(test_before, test, blocking=self.make_plots_blocking)
 
     def test_introduce_data_drops_with_time_alignment(self):
 
@@ -102,7 +107,7 @@ class TimeAlignment(unittest.TestCase):
 
       time_offset = calculate_time_offset_from_signals(
           self.t1s[0:-1], self.angular_velocity1_norms, self.t2s[0:-1],
-          self.angular_velocity2_norms, True)
+          self.angular_velocity2_norms, plot=True, block=True)
       print(time_offset)
 
       config = DataDropConfig()
@@ -118,11 +123,7 @@ class TimeAlignment(unittest.TestCase):
       print("expected_test_size: {}".format(expected_test_size))
 
       # assert abs(len(test) - expected_test_size) < 1e-8
-      plt.subplot(2, 1, 1)
-      plt.plot(test_before)
-      plt.subplot(2, 1, 2)
-      plt.plot(test)
-      plt.show()
+      plot_alignment(test_before, test, blocking=self.make_plots_blocking)
 
 
 if __name__ == '__main__':

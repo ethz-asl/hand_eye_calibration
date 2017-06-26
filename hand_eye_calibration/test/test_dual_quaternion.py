@@ -14,20 +14,11 @@ class DualQuaternionOperations(unittest.TestCase):
     qr_1 = Quaternion(1., 2., 3., 4.)
     qt_1 = Quaternion(1., 3., 3., 0.)
     dq_1 = DualQuaternion(qr_1, qt_1)
-    print("dq_1:{}".format(dq_1))
-    print("qr_1:{}".format(qr_1))
-    print("dq_1.dq:{}".format(dq_1.dq))
+
     qr_2 = Quaternion(3., 5., 3., 2.)
     qt_2 = Quaternion(-4., 2., 3., 0.)
     dq_2 = DualQuaternion(qr_2, qt_2)
-    print("dq_2:{}".format(dq_2))
-    print("qr_1:{}".format(qr_1))
-    print("dq_2.dq:{}".format(dq_2.dq))
 
-    print("dq_1:{}".format(dq_1))
-    print("dq_1.dq:{}".format(dq_1.dq))
-
-    print("dq_add:{}".format(dq_1.dq + dq_2.dq))
     dq_expected = np.array([4., 7., 6., 6., -3., 5., 6., 0.]).T
 
     npt.assert_allclose((dq_1 + dq_2).dq, dq_expected, rtol=1e-6)

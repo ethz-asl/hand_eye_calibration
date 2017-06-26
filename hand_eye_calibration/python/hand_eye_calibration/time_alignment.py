@@ -56,7 +56,7 @@ def calculate_time_offset_from_signals(times_A, signal_A,
   time_offset = dt_A * offset_index + times_B[0] - times_A[0]
   if plot:
     plot_results(times_A, times_B, signal_A, signal_B, convoluted_signals,
-                 time_offset, block)
+                 time_offset, block=block)
   return time_offset
 
 

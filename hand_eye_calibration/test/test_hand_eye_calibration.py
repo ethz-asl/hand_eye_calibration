@@ -19,6 +19,7 @@ class HandEyeCalibration(unittest.TestCase):
   paths_start_at_origin = True
   enforce_same_non_dual_scalar_sign = True
   enforce_positive_non_dual_scalar_sign = True
+  make_plots_blocking = False
 
   dq_H_E = he_helpers.random_transform_as_dual_quaternion(
       enforce_positive_non_dual_scalar_sign)
@@ -83,7 +84,7 @@ class HandEyeCalibration(unittest.TestCase):
           [dq_B_H_vec[i].to_pose().T]), axis=0)
       poses_W_E = np.append(poses_W_E, np.array(
           [dq_W_E_vec[i].to_pose().T]), axis=0)
-    plot_poses([poses_B_H, poses_W_E])
+    plot_poses([poses_B_H, poses_W_E], blocking=self.make_plots_blocking)
 
     hand_eye_config = HandEyeConfig()
     hand_eye_config.visualize = False
@@ -132,7 +133,7 @@ class HandEyeCalibration(unittest.TestCase):
           [dq_B_H_vec[i].to_pose().T]), axis=0)
       poses_W_E = np.append(poses_W_E, np.array(
           [dq_W_E_vec[i].to_pose().T]), axis=0)
-    plot_poses([poses_B_H, poses_W_E])
+    plot_poses([poses_B_H, poses_W_E], blocking=self.make_plots_blocking)
 
     hand_eye_config = HandEyeConfig()
     hand_eye_config.visualize = False
@@ -174,7 +175,7 @@ class HandEyeCalibration(unittest.TestCase):
           [self.dq_B_H_vec[i].to_pose().T]), axis=0)
       poses_W_E = np.append(poses_W_E, np.array(
           [self.dq_W_E_vec[i].to_pose().T]), axis=0)
-    plot_poses([poses_B_H, poses_W_E])
+    plot_poses([poses_B_H, poses_W_E], blocking=self.make_plots_blocking)
 
 
 if __name__ == '__main__':
