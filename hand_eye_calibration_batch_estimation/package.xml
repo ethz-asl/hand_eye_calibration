@@ -5,7 +5,7 @@
   <description>The hand_eye_calibration_batch_estimation package.</description>
 
   <maintainer email="fadri.furrer@mavt.ethz.ch">Fadri Furrer</maintainer>
-  <maintainer email="marius.fehr@mavt.ethz.ch">Marius Fehr</maintainer>
+  <maintainer email="hannes.sommer@mavt.ethz.ch">Hannes Sommer</maintainer>
 
   <license>BSD-3</license>
 
@@ -15,6 +15,7 @@
   <author email="marius.fehr@mavt.ethz.ch">Marius Fehr</author>
   <author email="tonci.novkovic@mavt.ethz.ch">Tonci Novkovic</author>
   <author email="thomas.schneider@mavt.ethz.ch">Thomas Schneider</author>
+  <author email="hannes.sommer@mavt.ethz.ch">Hannes Sommer</author>
 
   <buildtool_depend>catkin</buildtool_depend>
   <buildtool_depend>catkin_simple</buildtool_depend>
