@@ -415,8 +415,8 @@ def evaluate_alignment(poses_A, poses_B, config, visualize=False):
 
   # Plot the error.
   if visualize:
-    plot_alignment_errors(errors_position, rmse_pose,
-                          errors_orientation, rmse_orientation)
+    plot_alignment_errors(errors_position, rmse_pose, errors_orientation,
+                          rmse_orientation, blocking=True)
 
   return (rmse_pose, rmse_orientation, inlier_list)
 
@@ -927,8 +927,7 @@ def compute_hand_eye_calibration_RANSAC(dq_B_H_vec, dq_W_E_vec, config):
                                                best_estimated_dq_H_E)
     (rmse_position_all,
      rmse_orientation_all,
-     inlier_flags) = evaluate_alignment(
-        poses_B_H, poses_W_H, config)
+     inlier_flags) = evaluate_alignment(poses_B_H, poses_W_H, config)
 
     every_nth_element = config.visualize_plot_every_nth_pose
     plot_poses([poses_B_H[:: every_nth_element],

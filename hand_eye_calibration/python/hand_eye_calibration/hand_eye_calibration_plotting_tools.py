@@ -114,7 +114,8 @@ def plot_poses(poses_list, plot_arrows=True, title="", blocking=True):
   plt.show(block=blocking)
 
 
-def plot_alignment_errors(errors_position, rmse_pose, errors_orientation, rmse_orientation):
+def plot_alignment_errors(errors_position, rmse_pose, errors_orientation,
+                          rmse_orientation, blocking=True):
   assert np.array_equal(errors_position.shape, errors_orientation.shape)
 
   num_error_values = errors_position.shape[0]
@@ -139,4 +140,4 @@ def plot_alignment_errors(errors_position, rmse_pose, errors_orientation, rmse_o
     mng.resize(*max_size)
   fig.tight_layout()
   plt.subplots_adjust(left=0.025, right=0.975, top=0.8, bottom=0.05)
-  plt.show(block=True)
+  plt.show(block=blocking)
