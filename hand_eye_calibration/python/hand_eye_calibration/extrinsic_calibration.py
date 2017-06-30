@@ -35,7 +35,7 @@ class ExtrinsicCalibration:
     return ExtrinsicCalibration(float(data['delay']), dq)
   
   def __str__(self):
-    return "[t: %f, dq: %s]" %(self.time_offset, str(self.pose_dq.to_pose()))
+    return "[delta_time: %f, delta_pose: %s]" %(self.time_offset, str(self.pose_dq.to_pose()))
 
   def __mul__(self, other):    
     if not isinstance(other, ExtrinsicCalibration):

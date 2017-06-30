@@ -83,7 +83,7 @@ def calibrateTwo(group, a_in, b_in, a, b):
   calib_file = group + ".json"
   if requiresUpdate([a_in, b_in, init_guess_file], [calib_file]):
     run("rosrun hand_eye_calibration_batch_estimation batch_estimator -v 1 \
-      --pose1csv=%s --pose2csv=%s \
+      --pose1_csv=%s --pose2_csv=%s \
       --init_guess_file=%s \
       --output_file=%s"
       % (a_in, b_in, init_guess_file, calib_file)
