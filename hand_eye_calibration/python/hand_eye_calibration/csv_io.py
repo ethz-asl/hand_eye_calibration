@@ -32,10 +32,13 @@ def read_time_stamped_poses_from_csv_file(csv_file, JPL_quaternion_format=False)
   return (time_stamped_poses.copy(), times, quaternions)
 
 
+def write_double_numpy_array_to_csv_file(array, csv_file):
+  np.savetxt(csv_file, array, delimiter=", ", fmt="%.18f")
+
 def write_time_stamped_poses_to_csv_file(time_stamped_poses, csv_file):
   """
   Writes time stamped poses to a CSV file.
   Uses the following line format:
     timestamp [s], x [m], y [m], z [m], qx, qy, qz, qw
   """
-  np.savetxt(csv_file, time_stamped_poses, delimiter=", ", fmt="%.18f")
+  write_double_numpy_array_to_csv_file(time_stamped_poses, csv_file)

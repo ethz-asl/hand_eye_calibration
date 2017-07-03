@@ -26,13 +26,17 @@ if __name__ == "__main__":
       help='The path to the file containing the first poses. (e.g. Hand poses in Body frame)')
   parser.add_argument(
       '--aligned_poses_H_B_csv_file', type=str,
-      help='Alternative input file for the first poses. (e.g. Body poses in Ehe frame)')
+      help='Alternative input file for the first poses. (e.g. Body poses in Eye frame)')
   parser.add_argument(
       '--aligned_poses_W_E_csv_file', type=str,
       help='The path to the file containing the second poses. (e.g. Eye poses in World frame)')
   parser.add_argument(
       '--aligned_poses_E_W_csv_file', type=str,
       help='Alternative input file for the second poses. (e.g. World poses in Eye frame)')
+  
+  parser.add_argument(
+      '--extrinsics_output_csv_file', type=str,
+      help='Write estimated extrinsics to this file in spatial-extrinsics csv format')
 
   parser.add_argument('--visualize', type=bool, default=False, help='Visualize the poses.')
   parser.add_argument('--plot_every_nth_pose', type=int,
@@ -115,3 +119,8 @@ if __name__ == "__main__":
      num_inliers, num_poses_kept,
      runtime, singular_values, bad_singular_values) = compute_hand_eye_calibration_RANSAC(
         dual_quat_B_H_vec, dual_quat_W_E_vec, hand_eye_config)
+
+  if args.extrinsics_output_csv_file is not None:
+      print("Writing extrinsics to %s." % args.extrinsics_output_csv_file)
+      from hand_eye_calibration.csv_io import write_double_numpy_array_to_csv_file
+      write_double_numpy_array_to_csv_file(dq_H_E.to_pose(), args.extrinsics_output_csv_file);

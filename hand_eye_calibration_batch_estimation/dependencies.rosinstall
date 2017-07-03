@@ -1,0 +1,12 @@
+- git:
+    local-name: catkin_simple
+    uri: https://github.com/catkin/catkin_simple.git
+- git:
+    local-name: oomact
+    uri: https://github.com/ethz-asl/oomact
+- git:
+    local-name: gflags_catkin
+    uri: https://github.com/ethz-asl/gflags_catkin
+- git:
+    local-name: glog_catkin
+    uri: https://github.com/ethz-asl/glog_catkin
