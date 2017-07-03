@@ -54,22 +54,22 @@ def calibrateTwo(group, a_in, b_in, a, b):
   b_aligned = group + '/' + b + "_aligned.csv"
   time_offset_file = group + '/' + 'time_offset.csv'
   pose_file = group + '/' + 'pose.csv'
-  
+
   if requiresUpdate([a_in, b_in], [a_aligned, b_aligned, time_offset_file]):
     run("rosrun hand_eye_calibration compute_aligned_poses.py \
       --poses_B_H_csv_file %s  \
       --poses_W_E_csv_file %s \
       --aligned_poses_B_H_csv_file %s \
       --aligned_poses_W_E_csv_file %s \
-      --time_offset_output_csv_file %s" 
+      --time_offset_output_csv_file %s"
       % (a_in, b_in, a_aligned, b_aligned, time_offset_file)
     )
-  
+
   if requiresUpdate([a_aligned, b_aligned], [pose_file]):
     run("rosrun hand_eye_calibration compute_hand_eye_calibration.py \
       --aligned_poses_B_H_csv_file %s \
       --aligned_poses_W_E_csv_file %s  \
-      --extrinsics_output_csv_file %s" 
+      --extrinsics_output_csv_file %s"
       % (a_aligned, b_aligned, pose_file)
     )
 
@@ -79,7 +79,7 @@ def calibrateTwo(group, a_in, b_in, a, b):
     pose = readArrayFromCsv(pose_file).reshape((7,))
     calib = ExtrinsicCalibration(time_offset, DualQuaternion.from_pose_vector(pose))
     calib.writeJson(init_guess_file)
-  
+
   calib_file = group + ".json"
   if requiresUpdate([a_in, b_in, init_guess_file], [calib_file]):
     run("rosrun hand_eye_calibration_batch_estimation batch_estimator -v 1 \
@@ -88,7 +88,7 @@ def calibrateTwo(group, a_in, b_in, a, b):
       --output_file=%s"
       % (a_in, b_in, init_guess_file, calib_file)
     )
-    
+
   cal = ExtrinsicCalibration.fromJson(calib_file)
   cal_init = ExtrinsicCalibration.fromJson(init_guess_file)
   print(cal_init, "->\n", cal)
@@ -98,7 +98,7 @@ if __name__ == '__main__':
   input = sys.argv[1:];
   names = [os.path.splitext(os.path.basename(a))[0] for a in input]
   print("Names:", names)
-  
+
   if len(names) == 2:
     calibrateTwo("test", input[0], input[1], names[0], names[1])
   elif len(names) == 3:

@@ -33,7 +33,7 @@ if __name__ == "__main__":
   parser.add_argument(
       '--aligned_poses_E_W_csv_file', type=str,
       help='Alternative input file for the second poses. (e.g. World poses in Eye frame)')
-  
+
   parser.add_argument(
       '--extrinsics_output_csv_file', type=str,
       help='Write estimated extrinsics to this file in spatial-extrinsics csv format')
@@ -104,7 +104,9 @@ if __name__ == "__main__":
 
   # TODO(mfehr): Add param to switch between algorithms.
   # (_, hand_eye_config) = get_RANSAC_scalar_part_inliers_config(True)
-  (_, hand_eye_config) = get_baseline_config(True)
+  # (_, hand_eye_config) = get_RANSAC_classic_config(False)
+  (_, hand_eye_config) =  get_exhaustive_search_scalar_part_inliers_config()
+  # (_, hand_eye_config) = get_baseline_config(True)
 
   hand_eye_config.visualize = args.visualize
   hand_eye_config.visualize_plot_every_nth_pose = args.plot_every_nth_pose

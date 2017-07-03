@@ -1,49 +1,120 @@
 bags:
   - 1:
-    name: 2017-04-09-18-13-10.bag
-    bag_path: /Users/ffurrer/Google Drive/fsr_2017/datasets/vicon_primesense/
-    intrinsics_path: /Users/ffurrer/catkin_ws/src/hand_eye_calibration/hand_eye_calibration/calib/
-    target_config_path: /Users/ffurrer/catkin_ws/src/hand_eye_calibration/hand_eye_calibration/calib/
+    name: h_e_1.bag
+    bag_path: /home/ffurrer/Desktop/
+    intrinsics_path: /home/ffurrer/hand_eye_ws/src/hand_eye_calibration/hand_eye_calibration/calib/
+    target_config_path: /home/ffurrer/hand_eye_ws/src/hand_eye_calibration/hand_eye_calibration/calib/
     cameras:
       cam_topics:
         - /camera/rgb/image_raw
       cam_intrinsics:
         - primesense_rgb.yaml
-    target: target.yaml
+    # target: target_83_249.yaml
+    target: target_83_249.yaml
     tf_frames:
       source:
-        - prime_sense
+        - primesense
       target:
-        - vicon
+        - optitrack
   - 2:
-    name: 2017-04-09-18-14-38.bag
-    bag_path: /Users/ffurrer/Google Drive/fsr_2017/datasets/vicon_primesense/
-    intrinsics_path: /Users/ffurrer/catkin_ws/src/hand_eye_calibration/hand_eye_calibration/calib/
-    target_config_path: /Users/ffurrer/catkin_ws/src/hand_eye_calibration/hand_eye_calibration/calib/
+    name: h_e_2.bag
+    bag_path: /home/ffurrer/Desktop/
+    intrinsics_path: /home/ffurrer/hand_eye_ws/src/hand_eye_calibration/hand_eye_calibration/calib/
+    target_config_path: /home/ffurrer/hand_eye_ws/src/hand_eye_calibration/hand_eye_calibration/calib/
     cameras:
       cam_topics:
         - /camera/rgb/image_raw
       cam_intrinsics:
         - primesense_rgb.yaml
-    target: target.yaml
+    # target: target_83_249.yaml
+    target: target_83_249.yaml
     tf_frames:
       source:
-        - prime_sense
+        - primesense
       target:
-        - vicon
-  # - 3:
-  #   name: 2017-04-09-18-17-46.bag
-  #   bag_path: /Users/ffurrer/Google Drive/fsr_2017/datasets/vicon_primesense
-  #   intrinsics_path: /Users/ffurrer/catkin_ws/src/hand_eye_calibration/hand_eye_calibration/calib/
-  #   target_config_path: /Users/ffurrer/catkin_ws/src/hand_eye_calibration/hand_eye_calibration/calib/
-  #   cameras:
-  #     cam_topics:
-  #       - /camera/ir/image
-  #     cam_intrinsics:
-  #       - primesense_ir.yaml
-  #   target: target.yaml
-  #   tf_frames:
-  #     source:
-  #       - vicon
-  #     target:
-  #       - prime_sense
+        - optitrack
+  - 3:
+    name: h_e_3.bag
+    bag_path: /home/ffurrer/Desktop/
+    intrinsics_path: /home/ffurrer/hand_eye_ws/src/hand_eye_calibration/hand_eye_calibration/calib/
+    target_config_path: /home/ffurrer/hand_eye_ws/src/hand_eye_calibration/hand_eye_calibration/calib/
+    cameras:
+      cam_topics:
+        - /camera/rgb/image_raw
+      cam_intrinsics:
+        - primesense_rgb.yaml
+    # target: target_83_249.yaml
+    target: target_83_249.yaml
+    tf_frames:
+      source:
+        - primesense
+      target:
+        - optitrack
+  - 4:
+    name: h_e_4.bag
+    bag_path: /home/ffurrer/Desktop/
+    intrinsics_path: /home/ffurrer/hand_eye_ws/src/hand_eye_calibration/hand_eye_calibration/calib/
+    target_config_path: /home/ffurrer/hand_eye_ws/src/hand_eye_calibration/hand_eye_calibration/calib/
+    cameras:
+      cam_topics:
+        - /camera/rgb/image_raw
+      cam_intrinsics:
+        - primesense_rgb.yaml
+    # target: target_83_249.yaml
+    target: target_83_249.yaml
+    tf_frames:
+      source:
+        - primesense
+      target:
+        - optitrack
+  - 5:
+    name: h_e_5.bag
+    bag_path: /home/ffurrer/Desktop/
+    intrinsics_path: /home/ffurrer/hand_eye_ws/src/hand_eye_calibration/hand_eye_calibration/calib/
+    target_config_path: /home/ffurrer/hand_eye_ws/src/hand_eye_calibration/hand_eye_calibration/calib/
+    cameras:
+      cam_topics:
+        - /camera/rgb/image_raw
+      cam_intrinsics:
+        - primesense_rgb.yaml
+    # target: target_83_249.yaml
+    target: target_55_165.yaml
+    tf_frames:
+      source:
+        - primesense
+      target:
+        - optitrack
+  - 6:
+    name: h_e_6.bag
+    bag_path: /home/ffurrer/Desktop/
+    intrinsics_path: /home/ffurrer/hand_eye_ws/src/hand_eye_calibration/hand_eye_calibration/calib/
+    target_config_path: /home/ffurrer/hand_eye_ws/src/hand_eye_calibration/hand_eye_calibration/calib/
+    cameras:
+      cam_topics:
+        - /camera/rgb/image_raw
+      cam_intrinsics:
+        - primesense_rgb.yaml
+    # target: target_83_249.yaml
+    target: target_55_165.yaml
+    tf_frames:
+      source:
+        - primesense
+      target:
+        - optitrack
+  - 7:
+    name: h_e_7.bag
+    bag_path: /home/ffurrer/Desktop/
+    intrinsics_path: /home/ffurrer/hand_eye_ws/src/hand_eye_calibration/hand_eye_calibration/calib/
+    target_config_path: /home/ffurrer/hand_eye_ws/src/hand_eye_calibration/hand_eye_calibration/calib/
+    cameras:
+      cam_topics:
+        - /camera/rgb/image_raw
+      cam_intrinsics:
+        - primesense_rgb.yaml
+    # target: target_83_249.yaml
+    target: target_55_165.yaml
+    tf_frames:
+      source:
+        - primesense
+      target:
+        - optitrack
