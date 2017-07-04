@@ -43,7 +43,7 @@ def write_transformation_to_csv_file(bag_file, target_frame, source_frame,
         # TODO(ff): Fix this logic, as if the source frame is child frame, we
         # can't get this frame.
         if single_tf.child_frame_id == source_frame:
-          # if single_tf.header.frame_id == source_frame:
+        # if single_tf.header.frame_id == source_frame:
           try:
             (translation,
              hamilton_quaternion) = tf_tree.lookupTransform(
