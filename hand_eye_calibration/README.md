@@ -18,9 +18,6 @@ In our hand-eye calibration we use the following frames:
 
 **TODO:** Add the transformations here.
 
-## Installation
-**TODO:** catkin
-
 ## Usage
 
 All our tools can either be run via ROS, using
