@@ -42,7 +42,7 @@ catkin config --cmake-args -DCMAKE_BUILD_TYPE=Release
 cd src
 git clone git@github.com:ethz-asl/hand_eye_calibration.git
 wstool init
-wstool merge hand_eye_calibration/dependencies.rosinstall
+wstool merge hand_eye_calibration/all_dependencies.rosinstall
 wstool update -j 8
 
 # Build hand_eye_calibration_package
