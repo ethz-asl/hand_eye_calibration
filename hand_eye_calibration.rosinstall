@@ -1,0 +1,54 @@
+- git:
+    local-name: catkin_simple
+    uri: 'git@github.com:catkin/catkin_simple.git'
+- git:
+    local-name: gflags_catkin
+    uri: 'git@github.com:ethz-asl/gflags_catkin.git'
+- git:
+    local-name: glog_catkin
+    uri: 'git@github.com:ethz-asl/glog_catkin.git'
+- git:
+    local-name: oomact
+    uri: 'git@github.com:ethz-asl/oomact.git'
+- git:
+    local-name: aslam_cv2
+    uri: 'git@github.com:ethz-asl/aslam_cv2.git'
+- git:
+    local-name: aslam_cv_basic
+    uri: 'git@github.com:ethz-asl/aslam_cv_basic.git'
+- git:
+    local-name: eigen_catkin
+    uri: 'git@github.com:ethz-asl/eigen_catkin.git'
+- git:
+    local-name: eigen_checks
+    uri: 'git@github.com:ethz-asl/eigen_checks.git'
+- git:
+    local-name: doxygen_catkin
+    uri: 'git@github.com:ethz-asl/doxygen_catkin.gt'
+- git:
+    local-name: minkindr
+    uri: 'git@github.com:ethz-asl/minkindr.git'
+- git:
+    local-name: yaml_cpp_catkin
+    uri: 'git@github.com:ethz-asl/yaml_cpp_catkin.git'
+- git:
+    local-name: ethzasl_apriltag2
+    uri: 'git@github.com:ethz-asl/ethzasl_apriltag2.git'
+- git:
+    local-name: opencv3_catkin
+    uri: 'git@github.com:ethz-asl/opencv3_catkin.git'
+- git:
+    local-name: brisk
+    uri: 'git@github.com:ethz-asl/brisk.git'
+- git:
+    local-name: Schweizer-Messer
+    uri: 'git@github.com:ethz-asl/Schweizer-Messer.git'
+- git:
+    local-name: aslam_optimizer
+    uri: 'git@github.com:ethz-asl/aslam_optimizer.git'
+- git:
+    local-name: aslam_splines
+    uri: 'git@github.com:ethz-asl/aslam_splines.git'
+- git:
+    local-name: hand_eye_calibration
+    uri: 'git@github.com:ethz-asl/hand_eye_calibration.git'
