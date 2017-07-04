@@ -14,8 +14,8 @@
     local-name: aslam_cv2
     uri: 'git@github.com:ethz-asl/aslam_cv2.git'
 - git:
-    local-name: aslam_cv_basic
-    uri: 'git@github.com:ethz-asl/aslam_cv_basic.git'
+    local-name: aslam_cv2_basic
+    uri: 'git@github.com:ethz-asl/aslam_cv2_basic.git'
 - git:
     local-name: eigen_catkin
     uri: 'git@github.com:ethz-asl/eigen_catkin.git'
@@ -24,10 +24,13 @@
     uri: 'git@github.com:ethz-asl/eigen_checks.git'
 - git:
     local-name: doxygen_catkin
-    uri: 'git@github.com:ethz-asl/doxygen_catkin.gt'
+    uri: 'git@github.com:ethz-asl/doxygen_catkin.git'
 - git:
     local-name: minkindr
     uri: 'git@github.com:ethz-asl/minkindr.git'
+- git:
+    local-name: asl_cmake_modules
+    uri: 'git@github.com:ethz-asl/asl_cmake_modules.git'
 - git:
     local-name: yaml_cpp_catkin
     uri: 'git@github.com:ethz-asl/yaml_cpp_catkin.git'
@@ -38,8 +41,8 @@
     local-name: opencv3_catkin
     uri: 'git@github.com:ethz-asl/opencv3_catkin.git'
 - git:
-    local-name: brisk
-    uri: 'git@github.com:ethz-asl/brisk.git'
+    local-name: ethzasl_brisk
+    uri: 'git@github.com:ethz-asl/ethzasl_brisk.git'
 - git:
     local-name: Schweizer-Messer
     uri: 'git@github.com:ethz-asl/Schweizer-Messer.git'
@@ -49,6 +52,12 @@
 - git:
     local-name: aslam_splines
     uri: 'git@github.com:ethz-asl/aslam_splines.git'
+- git:
+    local-name: suitesparse
+    uri: 'git@github.com:ethz-asl/suitesparse.git'
+- git:
+    local-name: opengv
+    uri: 'git@github.com:ethz-asl/opengv.git'
 - git:
     local-name: hand_eye_calibration
     uri: 'git@github.com:ethz-asl/hand_eye_calibration.git'
