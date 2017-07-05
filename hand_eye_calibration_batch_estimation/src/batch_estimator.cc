@@ -32,11 +32,30 @@ DEFINE_string(
     "Pose2 input file. "
     "format: [frame_id, x[mm], y[mm], z[mm], x, y, z, w]");
 
-DEFINE_string(config_file, PACKAGE_PATH_MARKER "/conf/config.info", "Configuration file. The marker '" PACKAGE_PATH_MARKER "' gets replaced with this package's path."); //TODO find a solution for configuration files in installed packages.
-DEFINE_string(model_config, "", "Comma separated configuration strings shadowing the content of the configuration file in the model section (for EXPERTS, no validation yet).");
-DEFINE_string(init_guess_file, "initial_guess.json", "Initial guess for the spatiotemporal extrinsics of the second sensor w.r.t. to the first.");
-DEFINE_string(output_file, "output.json", "Output for the spatiotemporal extrinsics of the second sensor w.r.t. to the first.");
-DEFINE_bool(use_jpl, false, "Use JPL quaternion convention.");
+DEFINE_string(
+  config_file,
+  PACKAGE_PATH_MARKER "/conf/config.info",
+  "Configuration file. The marker '" PACKAGE_PATH_MARKER "' gets replaced with this package's path.");
+
+DEFINE_string(
+  model_config,
+  "",
+  "Comma separated configuration strings shadowing the content of the configuration file in the model section (for EXPERTS, no validation yet).");
+
+DEFINE_string(
+  init_guess_file,
+  "initial_guess.json",
+  "Initial guess for the spatiotemporal extrinsics of the second sensor w.r.t. to the first.");
+
+DEFINE_string(
+  output_file,
+  "output.json",
+  "Output for the spatiotemporal extrinsics of the second sensor w.r.t. to the first.");
+
+DEFINE_bool(
+  use_jpl,
+  false,
+  "Use JPL quaternion convention.");
 
 Eigen::Vector4d toInternalQuaternionConvention(const Eigen::Vector4d & q) {
   return FLAGS_use_jpl ? q : sm::kinematics::quatInv(q);
@@ -108,13 +127,15 @@ void writePosesToCsv(const std::string & path, aslam::calibration::CalibratorI &
 }
 
 ValueStoreRef loadConfigFile() {
+  //TODO find a solution for configuration files in installed packages. Maybe this works already?
   std::string config_file = FLAGS_config_file;
   const auto marker_pos = config_file.find(PACKAGE_PATH_MARKER);
   if (marker_pos != std::string::npos) {
+
     const std::string package_path = ros::package::getPath("hand_eye_calibration_batch_estimation");
     config_file = config_file.replace(marker_pos, strlen(PACKAGE_PATH_MARKER), package_path);
   }
-  LOG(INFO)<< "Loading " << config_file << " as base configuration file.";
+  LOG(INFO) << "Loading " << config_file << " as base configuration file.";
   return valueStoreFromFile(config_file);
 }
 
@@ -133,7 +154,9 @@ sm::BoostPropertyTree loadExtraConfigStrings() {
   sm::BoostPropertyTree bpt_extra;
   if (!FLAGS_model_config.empty()) {
     bpt_extra.loadStrings(split(FLAGS_model_config, ','));
-    LOG(INFO) << "Loaded extra configuration\n*******************\n" << bpt_extra.asInfoString() <<"\n*******************\n";
+    LOG(INFO)
+      << "Loaded extra configuration\n*******************\n"
+      << bpt_extra.asInfoString() <<"\n*******************\n";
   }
   return bpt_extra;
 }
@@ -148,7 +171,11 @@ int main(int argc, char ** argv) {
   sm::BoostPropertyTree bpt_extra = loadExtraConfigStrings();
   sm::BoostPropertyTree init_guess_file_bpt;
   auto vs_init_guess = valueStoreFromFile(FLAGS_init_guess_file, &init_guess_file_bpt);
-  auto vs_model = ValueStoreRef(new sm::LayeredValueStore(ValueStoreRef(bpt_extra), ValueStoreRef(new sm::PrefixedValueStore(vs_init_guess, PrefixedValueStore::PrefixMode::REMOVE, "pose2")), vs_config.getChild("model")));
+  auto vs_model = ValueStoreRef(
+      new sm::LayeredValueStore(ValueStoreRef(bpt_extra),
+      ValueStoreRef(new sm::PrefixedValueStore(vs_init_guess, PrefixedValueStore::PrefixMode::REMOVE, "pose2")),
+      vs_config.getChild("model"))
+    );
 
   FrameGraphModel model(vs_model, nullptr, { &body, &world });
   PoseSensor pose1_sensor(model, "pose1", vs_model);
