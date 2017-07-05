@@ -15,6 +15,9 @@ rosrun hand_eye_calibration_experiments compute_set_of_hand_eye_calibrations.py
 
 ```
 source $CATKIN_WS/devel/setup.bash
-rosrun hand_eye_calibration_experiments compute_set_of_hand_eye_calibrations.py --aligned_poses_B_H_csv_files=TANGO_exCALIBur_2/CALIGULA_2017-04-06-18-21-33.csv:TANGO_exCALIBur_2/MARS_2017-04-06-18-23-37.csv:TANGO_exCALIBur_2/NERO_2017-04-06-18-25-25.csv --visualize=True --plot_every_nth_pose=10 --num_iterations=2 --result_file TANGO_exCALIBur_2/result.csv
+rosrun hand_eye_calibration_experiments compute_set_of_hand_eye_calibrations.py --aligned_poses_B_H_csv_files \ TANGO_exCALIBur_2/CALIGULA_2017-04-06-18-21-33.csv \ TANGO_exCALIBur_2/MARS_2017-04-06-18-23-37.csv \ TANGO_exCALIBur_2/NERO_2017-04-06-18-25-25.csv \
+--num_iterations=2 \
+--result_directory TANGO_exCALIBur_2/results  \
+--is_absolute_pose_sensor 1 0 1 \
 
 ```

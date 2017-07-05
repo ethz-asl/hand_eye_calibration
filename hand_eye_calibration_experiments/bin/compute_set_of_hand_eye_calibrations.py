@@ -5,6 +5,7 @@ import argparse
 import csv
 import itertools
 import os
+import errno
 import sys
 
 import numpy as np
@@ -22,19 +23,83 @@ from hand_eye_calibration.csv_io import (write_time_stamped_poses_to_csv_file,
 from hand_eye_calibration.time_alignment import (calculate_time_offset,
                                                  compute_aligned_poses,
                                                  FilteringConfig)
+from hand_eye_calibration.extrinsic_calibration import ExtrinsicCalibration
 from hand_eye_calibration.bash_utils import run
 from hand_eye_calibration.calibration_verification import evaluate_calibration
 from hand_eye_calibration_experiments.all_algorithm_configs import get_all_configs
 from hand_eye_calibration_experiments.experiment_results import ResultEntry
 
 
+def create_path(path):
+  if not os.path.exists(os.path.dirname(path)):
+    try:
+      os.makedirs(os.path.dirname(path))
+    except OSError as exc:  # Guard against race condition
+      if exc.errno != errno.EEXIST:
+        raise
+
+
+def compute_loop_error(results_dq_H_E, visualize=False):
+  calibration_transformation_chain = []
+
+  # Add point at origin to represent the first coordinate
+  # frame in the chain of transformations.
+  calibration_transformation_chain.append(
+      DualQuaternion(Quaternion(0, 0, 0, 1), Quaternion(0, 0, 0, 0)))
+
+  # Add first transformation
+  calibration_transformation_chain.append(results_dq_H_E[0])
+
+  # Create chain of transformations from the first frame to the last.
+  i = 0
+  idx = 0
+  while i < (num_poses_sets - 2):
+    idx += (num_poses_sets - i - 1)
+    calibration_transformation_chain.append(results_dq_H_E[idx])
+    i += 1
+
+  # Add inverse of first to last frame to close the loop.
+  calibration_transformation_chain.append(
+      results_dq_H_E[num_poses_sets - 2].inverse())
+
+  # Check loop.
+  assert len(calibration_transformation_chain) == (num_poses_sets + 1), (
+      len(calibration_transformation_chain), (num_poses_sets + 1))
+
+  # Chain the transformations together to get points we can plot.
+  poses_to_plot = []
+  dq_tmp = DualQuaternion(Quaternion(0, 0, 0, 1), Quaternion(0, 0, 0, 0))
+  for i in range(0, len(calibration_transformation_chain)):
+    dq_tmp *= calibration_transformation_chain[i]
+    poses_to_plot.append(dq_tmp.to_pose())
+
+  (loop_error_position, loop_error_orientation) = compute_pose_error(poses_to_plot[0],
+                                                                     poses_to_plot[-1])
+
+  print("Error when closing the loop of hand eye calibrations - position: {}"
+        " m orientation: {} deg".format(loop_error_position,
+                                        loop_error_orientation))
+
+  if visualize:
+    assert len(poses_to_plot) == len(calibration_transformation_chain)
+    plot_poses([np.array(poses_to_plot)], plot_arrows=True,
+               title="Hand-Eye Calibration Results - Closing The Loop")
+
+  # Compute error of loop.
+  return (loop_error_position, loop_error_orientation)
+
+
 if __name__ == "__main__":
   parser = argparse.ArgumentParser(description='Align pairs of poses.')
   parser.add_argument(
-      '--aligned_poses_B_H_csv_files', type=str, required=True,
+      '--aligned_poses_B_H_csv_files', nargs='+', type=str, required=True,
       help='The path to the file containing the first poses. (e.g. Hand poses in Body frame)')
-  parser.add_argument('--result_file', type=str, required=True,
-                      help='The path to the result file.')
+  parser.add_argument(
+      '--is_absolute_pose_sensor', nargs='+', type=int,
+      help=("For each file passed to - -aligned_poses_B_H_csv_files specify if the pose sensor "
+            "is absolute or not. E.g. --is_absolute_pose_sensor 0 1 1"))
+  parser.add_argument('--result_directory', type=str, required=True,
+                      help='The path to the result directory.')
 
   parser.add_argument('--visualize', type=bool,
                       default=False, help='Visualize the poses.')
@@ -47,16 +112,36 @@ if __name__ == "__main__":
 
   assert args.aligned_poses_B_H_csv_files is not None
 
-  poses_B_H_csv_files = args.aligned_poses_B_H_csv_files.split(':')
+  poses_B_H_csv_files = args.aligned_poses_B_H_csv_files
   num_poses_sets = len(poses_B_H_csv_files)
   assert num_poses_sets >= 2, "Needs at least two sets of poses."
 
+  # If nothing was specified, assume they are all not absolute.
+  is_absolute_pose_sensor_flags = None
+  if args.is_absolute_pose_sensor is None:
+    is_absolute_pose_sensor_flags = [False] * num_poses_sets
+  else:
+    is_absolute_pose_sensor_flags = [bool(flag)
+                                     for flag in args.is_absolute_pose_sensor]
+  assert len(is_absolute_pose_sensor_flags) == num_poses_sets
+
   set_of_pose_pairs = list(itertools.combinations(poses_B_H_csv_files, 2))
+  set_of_is_absolute_sensor_flags = list(
+      itertools.combinations(is_absolute_pose_sensor_flags, 2))
   num_pose_pairs = len(set_of_pose_pairs)
+  assert len(set_of_pose_pairs) == len(is_absolute_pose_sensor_flags)
+
+  print("#############################")
+  print(is_absolute_pose_sensor_flags)
+  print(set_of_is_absolute_sensor_flags)
+  print("#############################")
 
   # Prepare result file.
-  if not os.path.exists(args.result_file):
-    output_file = open(args.result_file, 'w')
+  result_file_path = args.result_directory + "/results.csv"
+  create_path(result_file_path)
+
+  if not os.path.exists(result_file_path):
+    output_file = open(result_file_path, 'w')
     example_result_entry = ResultEntry()
     output_file.write(example_result_entry.get_header())
 
@@ -70,7 +155,7 @@ if __name__ == "__main__":
 
   for (algorithm_name, filtering_config, hand_eye_config, optimization_config) in all_algorithm_configurations:
 
-    print("\n\n\nRun algorithm {}\n\n\n".format(hand_eye_config.algorithm_name))
+    print("\n\n\nRun algorithm {}\n\n\n".format(algorithm_name))
     hand_eye_config.visualize = args.visualize
     hand_eye_config.plot_every_nth_pose = args.plot_every_nth_pose
 
@@ -89,14 +174,17 @@ if __name__ == "__main__":
       results_poses_H_E = []
 
       pose_pair_num = 0
-      for (pose_file_B_H, pose_file_W_E) in set_of_pose_pairs:
-        print("\n\nHand-calibration between \n\t{}\n and \n\t{}\n\n".format(
-            pose_file_B_H, pose_file_W_E))
+
+      for ((pose_file_B_H, pose_file_W_E), (is_absolute_sensor_B_H, is_absolute_sensor_W_E)) in zip(set_of_pose_pairs, set_of_is_absolute_sensor_flags):
+        print("\n\nHand-calibration between \n\t{} (absolute: {})\n and \n\t{} (absolute: {})\n\n".format(
+            pose_file_B_H, is_absolute_sensor_B_H, pose_file_W_E, is_absolute_sensor_W_E))
 
         # Define output file paths.
-        initial_guess_calibration_file = ("./optimization/{}_pose_pair_{}_it_{}_" +
-                                          "init_guess.json").format(
-            hand_eye_config.algorithm_name, pose_pair_num, iteration)
+        initial_guess_calibration_file = ("{}/optimization/{}_pose_pair_{}_it_{}_" +
+                                          "init_guess.json").format(args.result_directory,
+                                                                    algorithm_name,
+                                                                    pose_pair_num, iteration)
+        create_path(initial_guess_calibration_file)
 
         (time_stamped_poses_B_H,
          times_B_H,
@@ -188,9 +276,10 @@ if __name__ == "__main__":
         result_entry.bad_singular_value.append(bad_singular_values)
 
         # Run optimization if enabled.
-        if optimization_config.optimization_enabled:
-          optimized_calibration_file = "./optimization/{}_pose_pair_{}_it_{}_optimized.json".format(
-              hand_eye_config.algorithm_name, pose_pair_num, iteration)
+        if optimization_config.enable_optimization:
+          optimized_calibration_file = "{}/optimization/{}_pose_pair_{}_it_{}_optimized.json".format(
+              args.result_directory, algorithm_name, pose_pair_num, iteration)
+          create_path(optimized_calibration_file)
 
           # Init optimization result
           time_offset_optimized = None
@@ -199,15 +288,21 @@ if __name__ == "__main__":
           rmse_optimized = (-1, -1)
           num_inliers_optimized = 0
 
+          model_config_string = ("pose1/absoluteMeasurements={},"
+                                 "pose2/absoluteMeasurements={}").format(
+              is_absolute_sensor_B_H, is_absolute_sensor_W_E).lower()
+
           try:
             run("rosrun hand_eye_calibration_batch_estimation batch_estimator -v 1 \
               --pose1_csv=%s --pose2_csv=%s \
-              --initial_guess_calibration_file=%s \
-              --output_file=%s" % (pose_file_B_H, pose_file_W_E,
-                                   initial_guess_calibration_file,
-                                   optimized_calibration_file))
+              --init_guess_file=%s \
+              --output_file=%s \
+              --model_config=%s" % (pose_file_B_H, pose_file_W_E,
+                                    initial_guess_calibration_file,
+                                    optimized_calibration_file,
+                                    model_config_string))
           except Exception as ex:
-            print("Optimization failed: {}".format(exception))
+            print("Optimization failed: {}".format(ex))
             optimization_success = False
 
           # If the optimization was successful, evaluate it.
@@ -229,12 +324,15 @@ if __name__ == "__main__":
                                                            time_offset_optimized)
 
           # Store results.
+          if dq_H_E_optimized is not None:
+            results_poses_H_E.append(dq_H_E_optimized.to_pose())
+          else:
+            results_poses_H_E.append(None)
+          results_dq_H_E.append(dq_H_E_optimized)
+
           result_entry.optimization_success.append(optimization_success)
           result_entry.rmse.append(rmse_optimized)
           result_entry.num_inliers.append(num_inliers_optimized)
-
-          results_poses_H_E.append(dq_H_E_optimized.to_pose())
-          results_dq_H_E.append(dq_H_E_optimized)
 
         else:  # Use result of initial algorithms without optimization
 
@@ -246,76 +344,32 @@ if __name__ == "__main__":
 
           result_entry.rmse.append(rmse)
           result_entry.num_inliers.append(num_inliers)
+          result_entry.optimization_success.append(True)
 
         pose_pair_num = pose_pair_num + 1
 
       # Verify results.
       assert len(results_dq_H_E) == num_pose_pairs
       assert len(results_poses_H_E) == num_pose_pairs
+      result_entry.check_length(num_pose_pairs)
 
-      assert len(result_entry.dataset_names) == num_pose_pairs
-      assert len(result_entry.success) == num_pose_pairs
-      assert len(result_entry.rmse) == num_pose_pairs
-      assert len(result_entry.num_inliers) == num_pose_pairs
-      assert len(result_entry.num_initial_poses) == num_pose_pairs
-      assert len(result_entry.num_poses_kept) == num_pose_pairs
-      assert len(result_entry.runtimes) == num_pose_pairs
-      assert len(result_entry.singular_values) == num_pose_pairs
-      assert len(result_entry.bad_singular_value) == num_pose_pairs
+      # Computing the loop error only makes sense if all pose pairs are successfully calibrated.
+      # If optimization is disabled, optimization_success should always be True.
+      if sum(result_entry.optimization_success) == num_pose_pairs:
+        (result_entry.loop_error_position,
+         result_entry.loop_error_orientation) = compute_loop_error(results_dq_H_E, True)
+      else:
+        print("Error: No loop error computed because not all pose pairs were successfully calibrated!")
 
-      calibration_transformation_chain = []
-
-      # Add point at origin to represent the first coordinate
-      # frame in the chain of transformations.
-      calibration_transformation_chain.append(
-          DualQuaternion(Quaternion(0, 0, 0, 1), Quaternion(0, 0, 0, 0)))
-
-      # Add first transformation
-      calibration_transformation_chain.append(results_dq_H_E[0])
-
-      # Create chain of transformations from the first frame to the last.
-      i = 0
-      idx = 0
-      while i < (num_poses_sets - 2):
-        idx += (num_poses_sets - i - 1)
-        print("i: {}, idx: {}".format(i, idx))
-        calibration_transformation_chain.append(results_dq_H_E[idx])
-        i += 1
-
-      # Add inverse of first to last frame to close the loop.
-      calibration_transformation_chain.append(
-          results_dq_H_E[num_poses_sets - 2].inverse())
-
-      # Check loop.
-      assert len(calibration_transformation_chain) == (num_poses_sets + 1), (
-          len(calibration_transformation_chain), (num_poses_sets + 1))
-
-      # Chain the transformations together to get points we can plot.
-      poses_to_plot = []
-      dq_tmp = DualQuaternion(Quaternion(0, 0, 0, 1), Quaternion(0, 0, 0, 0))
-      for i in range(0, len(calibration_transformation_chain)):
-        dq_tmp *= calibration_transformation_chain[i]
-        poses_to_plot.append(dq_tmp.to_pose())
-
-      # Compute error of loop.
-      (result_entry.loop_error_position,
-       result_entry.loop_error_orientation) = compute_pose_error(poses_to_plot[0],
-                                                                 poses_to_plot[-1])
-      print("Error when closing the loop of hand eye calibrations - position: {}"
-            " m orientation: {} deg".format(result_entry.loop_error_position,
-                                            result_entry.loop_error_orientation))
-
-      if args.visualize:
-        assert len(poses_to_plot) == len(calibration_transformation_chain)
-        plot_poses([np.array(poses_to_plot)], plot_arrows=True,
-                   title="Hand-Eye Calibration Results - Closing The Loop")
-
-      output_file = open(args.result_file, 'a')
+      # Write to result files.
+      output_file = open(result_file_path, 'a')
       for i in range(0, num_pose_pairs):
-        dq_H_E_file = "./dq_H_E/{}_pose_pair_{}".format(
-            hand_eye_config.algorithm_name, i) + "_dq_H_E.txt"
-        poses_H_E_file = "./poses_H_E/{}_pose_pair_{}".format(
-            hand_eye_config.algorithm_name, i) + "_pose_H_E.txt"
+        dq_H_E_file = "{}/dq_H_E/{}_pose_pair_{}_dq_H_E.txt".format(args.result_directory,
+                                                                    algorithm_name, i)
+        create_path(dq_H_E_file)
+        poses_H_E_file = "{}/poses_H_E/{}_pose_pair_{}_pose_H_E.txt".format(args.result_directory,
+                                                                            algorithm_name, i)
+        create_path(poses_H_E_file)
 
         if os.path.exists(dq_H_E_file):
           append_write = 'a'  # append if already exists
@@ -329,8 +383,10 @@ if __name__ == "__main__":
         output_file_pose_H_E = open(
             poses_H_E_file, append_write)
 
-        output_file_dq_H_E.write("{}\n".format(
-            np.array_str(results_dq_H_E[i].dq, max_line_width=1000000)))
-        output_file_pose_H_E.write("{}\n".format(
-            np.array_str(results_poses_H_E[i], max_line_width=1000000)))
+        if results_dq_H_E[i] is not None:
+          output_file_dq_H_E.write("{}\n".format(
+              np.array_str(results_dq_H_E[i].dq, max_line_width=1000000)))
+          output_file_pose_H_E.write("{}\n".format(
+              np.array_str(results_poses_H_E[i], max_line_width=1000000)))
+
         output_file.write(result_entry.write_pose_pair_to_csv_line(i))

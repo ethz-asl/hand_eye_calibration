@@ -17,10 +17,10 @@ class OptimizationConfig:
 
 
 def get_all_configs():
-  return [get_baseline_and_optimization_config(True, False),
-          get_baseline_and_optimization_config(False, False),
-          get_baseline_and_optimization_config(True, True),
+  return [get_baseline_and_optimization_config(True, True),
           get_baseline_and_optimization_config(False, True),
+          get_baseline_and_optimization_config(True, False),
+          get_baseline_and_optimization_config(False, False),
 
           get_RC_and_optimization_config(True, False),
           get_RC_and_optimization_config(False, False),

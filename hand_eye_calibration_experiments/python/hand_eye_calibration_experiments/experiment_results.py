@@ -19,7 +19,7 @@ class ResultEntry:
     self.runtimes = []
     self.loop_error_position = -1
     self.loop_error_orientation = -1
-    self.singular_values = np.array()
+    self.singular_values = []
     self.bad_singular_value = []
     self.optimization_enabled = False
     self.optimization_success = []
@@ -29,9 +29,21 @@ class ResultEntry:
     self.prefiltering = hand_eye_config.prefilter_poses_enabled
     self.optimization_enabled = optimization_config.enable_optimization
 
+  def check_length(self, num_pose_pairs):
+    assert len(self.dataset_names) == num_pose_pairs
+    assert len(self.success) == num_pose_pairs
+    assert len(self.rmse) == num_pose_pairs
+    assert len(self.num_inliers) == num_pose_pairs
+    assert len(self.num_initial_poses) == num_pose_pairs
+    assert len(self.num_poses_kept) == num_pose_pairs
+    assert len(self.runtimes) == num_pose_pairs
+    assert len(self.singular_values) == num_pose_pairs
+    assert len(self.bad_singular_value) == num_pose_pairs
+    assert len(self.optimization_success) == num_pose_pairs
+
   def get_header(self):
     return ("algorithm_name,"
-            "pose_pair_num,"
+            "num_pose_pairs,"
             "iteration_num,"
             "prefiltering,"
             "poses_B_H_csv_file,"
@@ -51,25 +63,25 @@ class ResultEntry:
             "optimization_enabled,"
             "optimization_success\n")
 
-  def write_pose_pair_to_csv_line(self, pose_pair_num):
+  def write_pose_pair_to_csv_line(self, num_pose_pairs):
     return "{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{}\n".format(
-        algorithm_name,
-        pose_pair_num,
-        iteration_num,
-        prefiltering_enabled,
-        dataset_names[pose_pair_num][0],
-        dataset_names[pose_pair_num][1],
-        success[pose_pair_num],
-        rmse[pose_pair_num][0],
-        rmse[pose_pair_num][1],
-        num_inliers[pose_pair_num],
-        num_initial_poses[pose_pair_num],
-        num_poses_kept[pose_pair_num],
-        runtimes[pose_pair_num],
-        loop_error_position,
-        loop_error_orientation,
+        self.algorithm_name,
+        num_pose_pairs,
+        self.iteration_num,
+        self.prefiltering_enabled,
+        self.dataset_names[num_pose_pairs][0],
+        self.dataset_names[num_pose_pairs][1],
+        self.success[num_pose_pairs],
+        self.rmse[num_pose_pairs][0],
+        self.rmse[num_pose_pairs][1],
+        self.num_inliers[num_pose_pairs],
+        self.num_initial_poses[num_pose_pairs],
+        self.num_poses_kept[num_pose_pairs],
+        self.runtimes[num_pose_pairs],
+        self.loop_error_position,
+        self.loop_error_orientation,
         np.array_str(
-            singular_values[pose_pair_num], max_line_width=1000000),
-        bad_singular_value[pose_pair_num],
-        optimization_enabled,
-        optimization_success[pose_pair_num])
+            self.singular_values[num_pose_pairs], max_line_width=1000000),
+        self.bad_singular_value[num_pose_pairs],
+        self.optimization_enabled,
+        self.optimization_success[num_pose_pairs])
