@@ -16,16 +16,18 @@ from hand_eye_calibration.dual_quaternion_hand_eye_calibration import (
     compute_hand_eye_calibration_BASELINE,
     align_paths_at_index, evaluate_alignment, HandEyeConfig, compute_pose_error)
 from hand_eye_calibration.hand_eye_calibration_plotting_tools import plot_poses
-from hand_eye_calibration.csv_io import (
-    write_time_stamped_poses_to_csv_file, read_time_stamped_poses_from_csv_file)
-from hand_eye_calibration.time_alignment import (
-    calculate_time_offset, compute_aligned_poses, FilteringConfig)
-from hand_eye_calibration.algorithm_config import (
-    get_basic_config, get_RANSAC_classic_config,
-    get_RANSAC_scalar_part_inliers_config,
-    get_exhaustive_search_pose_inliers_config,
-    get_exhaustive_search_scalar_part_inliers_config,
-    get_baseline_config)
+from hand_eye_calibration.csv_io import (write_time_stamped_poses_to_csv_file,
+                                         read_time_stamped_poses_from_csv_file,
+                                         write_double_numpy_array_to_csv_file)
+from hand_eye_calibration.time_alignment import (calculate_time_offset,
+                                                 compute_aligned_poses,
+                                                 FilteringConfig)
+from hand_eye_calibration.utils import (run, readArrayFromCsv, getMTimes,
+                                        requiresUpdate, computeCircle)
+from hand_eye_calibration.calibration_verification import evaluate_calibration
+from hand_eye_calibration_experiments.all_algorithm_config import get_all_configs
+from hand_eye_calibration_experiments.experiment_results import ResultEntry
+
 
 if __name__ == "__main__":
   parser = argparse.ArgumentParser(description='Align pairs of poses.')
@@ -35,7 +37,8 @@ if __name__ == "__main__":
   parser.add_argument('--result_file', type=str, required=True,
                       help='The path to the result file.')
 
-  parser.add_argument('--visualize', type=bool, default=False, help='Visualize the poses.')
+  parser.add_argument('--visualize', type=bool,
+                      default=False, help='Visualize the poses.')
   parser.add_argument('--plot_every_nth_pose', type=int,
                       help='Plot only every n-th pose.', default=10)
   parser.add_argument('--num_iterations', type=int,
@@ -55,16 +58,8 @@ if __name__ == "__main__":
   # Prepare result file.
   if not os.path.exists(args.result_file):
     output_file = open(args.result_file, 'w')
-    output_file.write("algorithm_name,pose_pair_num,"
-                      "iteration_num,prefiltering,"
-                      "poses_B_H_csv_file,poses_W_E_csv_file,"
-                      "success,position_rmse,orientation_rmse,"
-                      "num_inliers,num_input_poses,num_poses"
-                      "after_filtering,runtime_s,"
-                      "loop_error_position_m,"
-                      "loop_error_orientation_deg,"
-                      "singular_values,"
-                      "bad_singular_values\n")
+    example_result_entry = ResultEntry()
+    output_file.write(example_result_entry.get_header())
 
   # Prepare folders.
   if not os.path.exists('dq_H_E'):
@@ -72,16 +67,9 @@ if __name__ == "__main__":
   if not os.path.exists('poses_H_E'):
     os.makedirs('poses_H_E')
 
-  all_algorithm_configurations = [get_RANSAC_scalar_part_inliers_config(True),
-                                  get_RANSAC_scalar_part_inliers_config(False),
-                                  get_RANSAC_classic_config(True),
-                                  get_RANSAC_classic_config(False),
-                                  get_exhaustive_search_pose_inliers_config(),
-                                  get_exhaustive_search_scalar_part_inliers_config(),
-                                  get_baseline_config(True),
-                                  get_baseline_config(False)]
+  all_algorithm_configurations = get_all_configs()
 
-  for (filtering_config, hand_eye_config) in all_algorithm_configurations:
+  for (algorithm_name, filtering_config, hand_eye_config, optimization_config) in all_algorithm_configurations:
 
     print("\n\n\nRun algorithm {}\n\n\n".format(hand_eye_config.algorithm_name))
     hand_eye_config.visualize = args.visualize
@@ -94,22 +82,22 @@ if __name__ == "__main__":
     print("\n\n\nRun {} iterations...\n\n\n".format(num_iterations))
     for iteration in range(0, num_iterations):
 
-      # Results:
-      results_dataset_names = []
-      results_success = []
+      result_entry = ResultEntry()
+      result_entry.init_from_configs(algorithm_name, filtering_config,
+                                     hand_eye_config, optimization_config)
+
       results_dq_H_E = []
       results_poses_H_E = []
-      results_rmse = []
-      results_num_inliers = []
-      results_num_initial_poses = []
-      results_num_poses_kept = []
-      results_runtimes = []
-      results_singular_values = []
-      results_bad_singular_value = []
 
+      pose_pair_num = 0
       for (pose_file_B_H, pose_file_W_E) in set_of_pose_pairs:
         print("\n\nHand-calibration between \n\t{}\n and \n\t{}\n\n".format(
             pose_file_B_H, pose_file_W_E))
+
+        # Define output file paths.
+        initial_guess_calibration_file = ("./optimization/{}_pose_pair_{}_it_{}_" +
+                                          "init_guess.json").format(
+            hand_eye_config.algorithm_name, pose_pair_num, iteration)
 
         (time_stamped_poses_B_H,
          times_B_H,
@@ -124,81 +112,155 @@ if __name__ == "__main__":
         print("Found ", time_stamped_poses_W_E.shape[0],
               " poses in file: ", pose_file_W_E)
 
-        print("Computing time offset...")
-        time_offset = calculate_time_offset(times_B_H, quaternions_B_H, times_W_E,
-                                            quaternions_W_E, filtering_config, args.visualize)
+        if not optimization_config.optimization_only:
 
-        print("Final time offset: {}s".format(time_offset))
+          print("Computing time offset...")
+          time_offset = calculate_time_offset(times_B_H, quaternions_B_H, times_W_E,
+                                              quaternions_W_E, filtering_config, args.visualize)
 
-        print("Computing aligned poses...")
-        (aligned_poses_B_H, aligned_poses_W_E) = compute_aligned_poses(
-            time_stamped_poses_B_H, time_stamped_poses_W_E, time_offset, args.visualize)
+          print("Time offset: {}s".format(time_offset))
 
-        # Convert poses to dual quaterions.
-        dual_quat_B_H_vec = [DualQuaternion.from_pose_vector(
-            aligned_pose_B_H) for aligned_pose_B_H in aligned_poses_B_H[:, 1:]]
-        dual_quat_W_E_vec = [DualQuaternion.from_pose_vector(
-            aligned_pose_W_E) for aligned_pose_W_E in aligned_poses_W_E[:, 1:]]
+          print("Computing aligned poses...")
+          (aligned_poses_B_H, aligned_poses_W_E) = compute_aligned_poses(
+              time_stamped_poses_B_H, time_stamped_poses_W_E, time_offset, args.visualize)
 
-        assert len(dual_quat_B_H_vec) == len(dual_quat_W_E_vec), "len(dual_quat_B_H_vec): {} vs len(dual_quat_W_E_vec): {}".format(
-            len(dual_quat_B_H_vec), len(dual_quat_W_E_vec))
+          # Convert poses to dual quaterions.
+          dual_quat_B_H_vec = [DualQuaternion.from_pose_vector(
+              aligned_pose_B_H) for aligned_pose_B_H in aligned_poses_B_H[:, 1:]]
+          dual_quat_W_E_vec = [DualQuaternion.from_pose_vector(
+              aligned_pose_W_E) for aligned_pose_W_E in aligned_poses_W_E[:, 1:]]
 
-        dual_quat_B_H_vec = align_paths_at_index(dual_quat_B_H_vec)
-        dual_quat_W_E_vec = align_paths_at_index(dual_quat_W_E_vec)
+          assert len(dual_quat_B_H_vec) == len(dual_quat_W_E_vec), "len(dual_quat_B_H_vec): {} vs len(dual_quat_W_E_vec): {}".format(
+              len(dual_quat_B_H_vec), len(dual_quat_W_E_vec))
 
-        # Draw both paths in their Global / World frame.
-        if args.visualize:
-          poses_B_H = np.array([dual_quat_B_H_vec[0].to_pose().T])
-          poses_W_E = np.array([dual_quat_W_E_vec[0].to_pose().T])
-          for i in range(1, len(dual_quat_B_H_vec)):
-            poses_B_H = np.append(poses_B_H, np.array(
-                [dual_quat_B_H_vec[i].to_pose().T]), axis=0)
-            poses_W_E = np.append(poses_W_E, np.array(
-                [dual_quat_W_E_vec[i].to_pose().T]), axis=0)
-          every_nth_element = args.plot_every_nth_pose
-          plot_poses([poses_B_H[::every_nth_element], poses_W_E[::every_nth_element]],
-                     True, title="3D Poses Before Alignment")
+          dual_quat_B_H_vec = align_paths_at_index(dual_quat_B_H_vec)
+          dual_quat_W_E_vec = align_paths_at_index(dual_quat_W_E_vec)
 
-        print("Computing hand-eye calibration...")
+          # Draw both paths in their Global / World frame.
+          if args.visualize:
+            poses_B_H = np.array([dual_quat_B_H_vec[0].to_pose().T])
+            poses_W_E = np.array([dual_quat_W_E_vec[0].to_pose().T])
+            for i in range(1, len(dual_quat_B_H_vec)):
+              poses_B_H = np.append(poses_B_H, np.array(
+                  [dual_quat_B_H_vec[i].to_pose().T]), axis=0)
+              poses_W_E = np.append(poses_W_E, np.array(
+                  [dual_quat_W_E_vec[i].to_pose().T]), axis=0)
+            every_nth_element = args.plot_every_nth_pose
+            plot_poses([poses_B_H[::every_nth_element], poses_W_E[::every_nth_element]],
+                       True, title="3D Poses Before Alignment")
 
-        if hand_eye_config.use_baseline_approach:
-          (success, dq_H_E, rmse,
-           num_inliers, num_poses_kept,
-           runtime, singular_values, bad_singular_values) = compute_hand_eye_calibration_BASELINE(
-              dual_quat_B_H_vec, dual_quat_W_E_vec, hand_eye_config)
-        else:
-          (success, dq_H_E, rmse,
-           num_inliers, num_poses_kept,
-           runtime, singular_values, bad_singular_values) = compute_hand_eye_calibration_RANSAC(
-              dual_quat_B_H_vec, dual_quat_W_E_vec, hand_eye_config)
+          print("Computing hand-eye calibration...")
 
-        results_dataset_names.append((pose_file_B_H, pose_file_W_E))
-        results_success.append(success)
-        results_dq_H_E.append(dq_H_E)
-        if dq_H_E is not None:
-          results_poses_H_E.append(dq_H_E.to_pose())
-        else:
-          results_poses_H_E.append(None)
-        results_rmse.append(rmse)
-        results_num_inliers.append(num_inliers)
-        results_num_initial_poses.append(len(dual_quat_B_H_vec))
-        results_num_poses_kept.append(num_poses_kept)
-        results_runtimes.append(runtime)
-        results_singular_values.append(singular_values)
-        results_bad_singular_value.append(bad_singular_values)
+          if hand_eye_config.use_baseline_approach:
+            (success, dq_H_E, rmse,
+             num_inliers, num_poses_kept,
+             runtime, singular_values, bad_singular_values) = compute_hand_eye_calibration_BASELINE(
+                dual_quat_B_H_vec, dual_quat_W_E_vec, hand_eye_config)
+          else:
+            (success, dq_H_E, rmse,
+             num_inliers, num_poses_kept,
+             runtime, singular_values, bad_singular_values) = compute_hand_eye_calibration_RANSAC(
+                dual_quat_B_H_vec, dual_quat_W_E_vec, hand_eye_config)
 
-      assert len(results_dataset_names) == num_pose_pairs
-      assert len(results_success) == num_pose_pairs
+          # Write results to file for the optimization.
+          calib = ExtrinsicCalibration(
+              time_offset, dq_H_E)
+          calib.writeJson(initial_guess_calibration_file)
+
+        else:  # Run optimization only mode.
+          time_offset_initial_guess = 0
+          dq_H_E_initial_guess = DualQuaternion.from_vector(
+              [0., 0., 0., 1.0, 0., 0., 0., 0.])
+
+          # Write some initial guess into the optimization input file.
+          initial_guess_calibration = ExtrinsicCalibration(
+              time_offset_initial_guess, dq_H_E_initial_guess)
+          initial_guess_calibration.writeJson(initial_guess_calibration_file)
+
+        # Fill in result entries.
+        result_entry.dataset_names.append((pose_file_B_H, pose_file_W_E))
+        result_entry.success.append(success)
+        result_entry.num_initial_poses.append(len(dual_quat_B_H_vec))
+        result_entry.num_poses_kept.append(num_poses_kept)
+        result_entry.runtimes.append(runtime)
+        result_entry.singular_values.append(singular_values)
+        result_entry.bad_singular_value.append(bad_singular_values)
+
+        # Run optimization if enabled.
+        if optimization_config.optimization_enabled:
+          optimized_calibration_file = "./optimization/{}_pose_pair_{}_it_{}_optimized.json".format(
+              hand_eye_config.algorithm_name, pose_pair_num, iteration)
+
+          # Init optimization result
+          time_offset_optimized = None
+          dq_H_E_optimized = None
+          optimization_success = True
+          rmse_optimized = (-1, -1)
+          num_inliers_optimized = 0
+
+          try:
+            run("rosrun hand_eye_calibration_batch_estimation batch_estimator -v 1 \
+              --pose1_csv=%s --pose2_csv=%s \
+              --initial_guess_calibration_file=%s \
+              --output_file=%s" % (pose_file_B_H, pose_file_W_E,
+                                   initial_guess_calibration_file,
+                                   optimized_calibration_file))
+          except Exception as ex:
+            print("Optimization failed: {}".format(exception))
+            optimization_success = False
+
+          # If the optimization was successful, evaluate it.
+          if optimization_success:
+            optimized_calibration = ExtrinsicCalibration.fromJson(
+                optimized_calibration_file)
+            initial_guess_calibration = ExtrinsicCalibration.fromJson(
+                initial_guess_calibration_file)
+            print("Optimized calibration: \n", initial_guess_calibration,
+                  "->\n", optimized_calibration)
+
+            dq_H_E_optimized = optimized_calibration.pose_dq
+            time_offset_optimized = optimized_calibration.time_offset
+
+            (rmse_optimized,
+             num_inliers_optimized) = evaluate_calibration(time_stamped_poses_B_H,
+                                                           time_stamped_poses_W_E,
+                                                           dq_H_E_optimized,
+                                                           time_offset_optimized)
+
+          # Store results.
+          result_entry.optimization_success.append(optimization_success)
+          result_entry.rmse.append(rmse_optimized)
+          result_entry.num_inliers.append(num_inliers_optimized)
+
+          results_poses_H_E.append(dq_H_E_optimized.to_pose())
+          results_dq_H_E.append(dq_H_E_optimized)
+
+        else:  # Use result of initial algorithms without optimization
+
+          if dq_H_E is not None:
+            results_poses_H_E.append(dq_H_E.to_pose())
+          else:
+            results_poses_H_E.append(None)
+          results_dq_H_E.append(dq_H_E)
+
+          result_entry.rmse.append(rmse)
+          result_entry.num_inliers.append(num_inliers)
+
+        pose_pair_num = pose_pair_num + 1
+
+      # Verify results.
       assert len(results_dq_H_E) == num_pose_pairs
       assert len(results_poses_H_E) == num_pose_pairs
-      assert len(results_rmse) == num_pose_pairs
-      assert len(results_num_inliers) == num_pose_pairs
-      assert len(results_num_initial_poses) == num_pose_pairs
-      assert len(results_num_poses_kept) == num_pose_pairs
-      assert len(results_runtimes) == num_pose_pairs
 
-      assert len(results_singular_values) == num_pose_pairs
-      assert len(results_bad_singular_value) == num_pose_pairs
+      assert len(result_entry.dataset_names) == num_pose_pairs
+      assert len(result_entry.success) == num_pose_pairs
+      assert len(result_entry.rmse) == num_pose_pairs
+      assert len(result_entry.num_inliers) == num_pose_pairs
+      assert len(result_entry.num_initial_poses) == num_pose_pairs
+      assert len(result_entry.num_poses_kept) == num_pose_pairs
+      assert len(result_entry.runtimes) == num_pose_pairs
+      assert len(result_entry.singular_values) == num_pose_pairs
+      assert len(result_entry.bad_singular_value) == num_pose_pairs
 
       calibration_transformation_chain = []
 
@@ -235,10 +297,12 @@ if __name__ == "__main__":
         poses_to_plot.append(dq_tmp.to_pose())
 
       # Compute error of loop.
-      (loop_error_position, loop_error_orientation) = compute_pose_error(poses_to_plot[0],
-                                                                         poses_to_plot[-1])
+      (result_entry.loop_error_position,
+       result_entry.loop_error_orientation) = compute_pose_error(poses_to_plot[0],
+                                                                 poses_to_plot[-1])
       print("Error when closing the loop of hand eye calibrations - position: {}"
-            " m orientation: {} deg".format(loop_error_position, loop_error_orientation))
+            " m orientation: {} deg".format(result_entry.loop_error_position,
+                                            result_entry.loop_error_orientation))
 
       if args.visualize:
         assert len(poses_to_plot) == len(calibration_transformation_chain)
@@ -268,12 +332,4 @@ if __name__ == "__main__":
             np.array_str(results_dq_H_E[i].dq, max_line_width=1000000)))
         output_file_pose_H_E.write("{}\n".format(
             np.array_str(results_poses_H_E[i], max_line_width=1000000)))
-        output_file.write("{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{}\n".format(
-            hand_eye_config.algorithm_name, i, iteration, hand_eye_config.prefilter_poses_enabled,
-            results_dataset_names[i][0], results_dataset_names[i][1],
-            results_success[i], results_rmse[i][0], results_rmse[i][1],
-            results_num_inliers[i], results_num_initial_poses[i],
-            results_num_poses_kept[i], results_runtimes[i], loop_error_position,
-            loop_error_orientation, np.array_str(
-                results_singular_values[i], max_line_width=1000000),
-            results_bad_singular_value[i]))
+        output_file.write(result_entry.write_pose_pair_to_csv_line(i))
