@@ -32,15 +32,11 @@ def get_all_configs():
           get_RS_and_optimization_config(True, True),
           get_RS_and_optimization_config(False, True),
 
-          get_EC_and_optimization_config(True, False),
-          get_EC_and_optimization_config(False, False),
-          get_EC_and_optimization_config(True, True),
-          get_EC_and_optimization_config(False, True),
+          get_EC_and_optimization_config(False),
+          get_EC_and_optimization_config(True),
 
-          get_ES_and_optimization_config(True, False),
-          get_ES_and_optimization_config(False, False),
-          get_ES_and_optimization_config(True, True),
-          get_ES_and_optimization_config(False, True),
+          get_ES_and_optimization_config(False),
+          get_ES_and_optimization_config(True),
 
           get_optimization_only_config()]
 
@@ -103,7 +99,7 @@ def get_RS_and_optimization_config(enable_filtering, enable_optimization):
   return (algorithm_name, time_alignment_config, hand_eye_config, optimiztion_config)
 
 
-def get_EC_and_optimization_config(enable_filtering, enable_optimization):
+def get_EC_and_optimization_config(enable_optimization):
   """
   Get configuration struct for end-to-end testing for:
     "Exhaustive search version of RANSAC classic" algorithm
@@ -111,7 +107,7 @@ def get_EC_and_optimization_config(enable_filtering, enable_optimization):
   """
 
   (time_alignment_config,
-   hand_eye_config) = get_exhaustive_search_pose_inliers_config(enable_filtering)
+   hand_eye_config) = get_exhaustive_search_pose_inliers_config()
 
   optimiztion_config = OptimizationConfig()
   optimiztion_config.enable_optimization = enable_optimization
@@ -123,7 +119,7 @@ def get_EC_and_optimization_config(enable_filtering, enable_optimization):
   return (algorithm_name, time_alignment_config, hand_eye_config, optimiztion_config)
 
 
-def get_ES_and_optimization_config(enable_filtering, enable_optimization):
+def get_ES_and_optimization_config(enable_optimization):
   """
   Get configuration struct for end-to-end testing for:
     "Exhaustive search version of RANSAC based on scalar part inliers" algorithm
@@ -131,7 +127,7 @@ def get_ES_and_optimization_config(enable_filtering, enable_optimization):
   """
 
   (time_alignment_config,
-   hand_eye_config) = get_exhaustive_search_scalar_part_inliers_config(enable_filtering)
+   hand_eye_config) = get_exhaustive_search_scalar_part_inliers_config()
 
   optimiztion_config = OptimizationConfig()
   optimiztion_config.enable_optimization = enable_optimization
@@ -149,7 +145,7 @@ def get_optimization_only_config():
     "Optimization-only" algorithm.
   """
 
-  (time_alignment_config, hand_eye_config) = get_basic_config(enable_filtering)
+  (time_alignment_config, hand_eye_config) = get_basic_config()
 
   optimiztion_config = OptimizationConfig()
   optimiztion_config.enable_optimization = True

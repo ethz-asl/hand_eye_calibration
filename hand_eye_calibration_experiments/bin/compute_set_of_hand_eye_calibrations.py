@@ -22,10 +22,9 @@ from hand_eye_calibration.csv_io import (write_time_stamped_poses_to_csv_file,
 from hand_eye_calibration.time_alignment import (calculate_time_offset,
                                                  compute_aligned_poses,
                                                  FilteringConfig)
-from hand_eye_calibration.utils import (run, readArrayFromCsv, getMTimes,
-                                        requiresUpdate, computeCircle)
+from hand_eye_calibration.bash_utils import run
 from hand_eye_calibration.calibration_verification import evaluate_calibration
-from hand_eye_calibration_experiments.all_algorithm_config import get_all_configs
+from hand_eye_calibration_experiments.all_algorithm_configs import get_all_configs
 from hand_eye_calibration_experiments.experiment_results import ResultEntry
 
 
@@ -168,7 +167,9 @@ if __name__ == "__main__":
           calib.writeJson(initial_guess_calibration_file)
 
         else:  # Run optimization only mode.
+          # No time offset.
           time_offset_initial_guess = 0
+          # Unit DualQuaternion.
           dq_H_E_initial_guess = DualQuaternion.from_vector(
               [0., 0., 0., 1.0, 0., 0., 0., 0.])
 

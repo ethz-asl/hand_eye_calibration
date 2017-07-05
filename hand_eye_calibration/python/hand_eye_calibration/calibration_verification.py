@@ -3,7 +3,7 @@
 from hand_eye_calibration.dual_quaternion_hand_eye_calibration import (
     evaluate_alignment, align_paths_at_index, get_aligned_poses)
 
-  from hand_eye_calibration.time_alignment import (compute_aligned_poses)
+from hand_eye_calibration.time_alignment import compute_aligned_poses
 
 
 def evaluate_calibration(time_stamped_poses_B_H, time_stamped_poses_W_E, dq_H_E, time_alignment):
