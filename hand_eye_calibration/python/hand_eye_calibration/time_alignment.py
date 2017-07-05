@@ -225,25 +225,29 @@ def compute_aligned_poses(time_stamped_poses_A,
     [timestamp [s], x [m], y [m], z [m], qx, qy, qz, qw]
   """
 
+  time_stamped_poses_A_shifted = time_stamped_poses_A.copy()
+
   # Apply time offset.
-  time_stamped_poses_A[:, 0] += time_offset
+  time_stamped_poses_A_shifted[:, 0] += time_offset
 
   # Compute common time interval.
-  start_time = max(time_stamped_poses_A[0, 0], time_stamped_poses_B[0, 0])
-  end_time = min(time_stamped_poses_A[-1, 0], time_stamped_poses_B[-1, 0])
+  start_time = max(
+      time_stamped_poses_A_shifted[0, 0], time_stamped_poses_B[0, 0])
+  end_time = min(
+      time_stamped_poses_A_shifted[-1, 0], time_stamped_poses_B[-1, 0])
   interval = end_time - start_time
 
   # Resample at the lower frequency to prevent introducing more noise.
-  dt_A = np.mean(np.diff(time_stamped_poses_A[:, 0]))
+  dt_A = np.mean(np.diff(time_stamped_poses_A_shifted[:, 0]))
   dt_B = np.mean(np.diff(time_stamped_poses_B[:, 0]))
   if dt_A >= dt_B:
     dt = dt_A
-    timestamps_low = time_stamped_poses_A[:, 0].T
+    timestamps_low = time_stamped_poses_A_shifted[:, 0].T
     timestamps_high = time_stamped_poses_B[:, 0].T
   else:
     dt = dt_B
     timestamps_low = time_stamped_poses_B[:, 0].T
-    timestamps_high = time_stamped_poses_A[:, 0].T
+    timestamps_high = time_stamped_poses_A_shifted[:, 0].T
 
   # Create samples at time stamps from lower frequency signal, check if there
   # are timely close samples available from the other signal.
@@ -273,13 +277,14 @@ def compute_aligned_poses(time_stamped_poses_A,
     if ((timestamp - timestamps_high[left_idx]) < max_time_stamp_difference and
             (timestamps_high[right_idx] - timestamp) <= max_time_stamp_difference):
       samples.append(timestamp)
+      continue
 
   samples = np.array(samples)
 
   # Uncomment if you want to have equally spaced samples in time.
   # samples = np.linspace(start_time, end_time, interval / dt + 1)
 
-  aligned_poses_A = interpolate_poses_from_samples(time_stamped_poses_A,
+  aligned_poses_A = interpolate_poses_from_samples(time_stamped_poses_A_shifted,
                                                    samples)
   aligned_poses_B = interpolate_poses_from_samples(time_stamped_poses_B,
                                                    samples)

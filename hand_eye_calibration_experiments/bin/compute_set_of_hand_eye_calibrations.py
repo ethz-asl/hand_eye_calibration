@@ -131,11 +131,6 @@ if __name__ == "__main__":
   num_pose_pairs = len(set_of_pose_pairs)
   assert len(set_of_pose_pairs) == len(is_absolute_pose_sensor_flags)
 
-  print("#############################")
-  print(is_absolute_pose_sensor_flags)
-  print(set_of_is_absolute_sensor_flags)
-  print("#############################")
-
   # Prepare result file.
   result_file_path = args.result_directory + "/results.csv"
   create_path(result_file_path)
@@ -311,8 +306,6 @@ if __name__ == "__main__":
                 optimized_calibration_file)
             initial_guess_calibration = ExtrinsicCalibration.fromJson(
                 initial_guess_calibration_file)
-            print("Optimized calibration: \n", initial_guess_calibration,
-                  "->\n", optimized_calibration)
 
             dq_H_E_optimized = optimized_calibration.pose_dq
             time_offset_optimized = optimized_calibration.time_offset
@@ -321,7 +314,19 @@ if __name__ == "__main__":
              num_inliers_optimized) = evaluate_calibration(time_stamped_poses_B_H,
                                                            time_stamped_poses_W_E,
                                                            dq_H_E_optimized,
-                                                           time_offset_optimized)
+                                                           time_offset_optimized,
+                                                           hand_eye_config)
+
+            print("Solution found by optimization\n"
+                  "\t\tNumber of inliers: {}\n"
+                  "\t\tRMSE position:     {:10.4f}\n"
+                  "\t\tRMSE orientation:  {:10.4f}".format(num_inliers_optimized, rmse_optimized[0],
+                                                           rmse_optimized[1]))
+
+            print("Initial guess time offset: \t{}".format(time_offset))
+            print("Optimized time offset: \t\t{}".format(time_offset_optimized))
+            print("Initial guess dq_H_E: \t\t{}".format(dq_H_E))
+            print("Optimized dq_H_E: \t\t{}".format(dq_H_E_optimized))
 
           # Store results.
           if dq_H_E_optimized is not None:
@@ -357,7 +362,7 @@ if __name__ == "__main__":
       # If optimization is disabled, optimization_success should always be True.
       if sum(result_entry.optimization_success) == num_pose_pairs:
         (result_entry.loop_error_position,
-         result_entry.loop_error_orientation) = compute_loop_error(results_dq_H_E, True)
+         result_entry.loop_error_orientation) = compute_loop_error(results_dq_H_E, args.visualize)
       else:
         print("Error: No loop error computed because not all pose pairs were successfully calibrated!")
 
