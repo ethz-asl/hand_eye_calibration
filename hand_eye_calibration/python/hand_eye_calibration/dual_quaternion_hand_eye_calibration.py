@@ -15,7 +15,8 @@ import tf
 import timeit
 
 from hand_eye_calibration.dual_quaternion import DualQuaternion
-from hand_eye_calibration.quaternion import (Quaternion, angle_between_quaternions)
+from hand_eye_calibration.quaternion import (
+    Quaternion, angle_between_quaternions)
 from hand_eye_calibration.hand_eye_calibration_plotting_tools import (
     plot_alignment_errors, plot_poses)
 
@@ -209,7 +210,8 @@ def compute_hand_eye_calibration(dq_B_H_vec_inliers, dq_W_E_vec_inliers,
               (dq_W_E.q_rot.w > 0. and dq_B_H.q_rot.w < 0.)):
         dq_W_E_vec_inliers[i].dq = -dq_W_E_vec_inliers[i].dq.copy()
 
-  # 0. Stop alignment if there are still pairs that do not have matching scalar parts.
+  # 0. Stop alignment if there are still pairs that do not have matching
+  # scalar parts.
   for j in range(n_quaternions):
     dq_B_H = dq_W_E_vec_inliers[j]
     dq_W_E = dq_B_H_vec_inliers[j]
@@ -504,7 +506,8 @@ def compute_hand_eye_calibration_BASELINE(dq_B_H_vec, dq_W_E_vec, config):
   if config.enable_exhaustive_search:
     print("Do exhaustive search to find biggest subset of inliers...")
   else:
-    print("Search for first set of inliers bigger than {}...".format(config.min_num_inliers))
+    print("Search for first set of inliers bigger than {}...".format(
+        config.min_num_inliers))
 
   # 0.1 Reject pairs where scalar parts of dual quaternions do not match.
   # Loop over all the indices to find an index of a pose pair.
@@ -539,7 +542,8 @@ def compute_hand_eye_calibration_BASELINE(dq_B_H_vec, dq_W_E_vec, config):
         best_idx = j
         best_dq_W_E_vec_inlier = copy.deepcopy(dq_W_E_vec_inlier)
         best_dq_B_H_vec_inlier = copy.deepcopy(dq_B_H_vec_inlier)
-        print("Found new best start idx: {} number of inliers: {}".format(best_idx, best_num_inliers))
+        print("Found new best start idx: {} number of inliers: {}".format(
+            best_idx, best_num_inliers))
     else:
       has_enough_inliers = (len(dq_W_E_vec_inlier) > config.min_num_inliers)
       if has_enough_inliers:
