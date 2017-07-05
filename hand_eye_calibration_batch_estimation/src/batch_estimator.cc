@@ -13,12 +13,14 @@
 #include <aslam/calibration/model/PoseTrajectory.h>
 #include <aslam/calibration/model/sensors/PoseSensor.hpp>
 #include <aslam/calibration/model/sensors/PositionSensor.hpp>
+#include <ros/package.h>
 #include <sm/boost/null_deleter.hpp>
 #include <sm/BoostPropertyTree.hpp>
 #include <sm/value_store/LayeredValueStore.hpp>
 #include <sm/value_store/PrefixedValueStore.hpp>
 
 constexpr const int kCsvOutputFixedPrecision = 18;
+#define PACKAGE_PATH_MARKER "<PACKAGE>"
 
 DEFINE_string(
     pose1_csv, "pose1.csv",
@@ -30,7 +32,7 @@ DEFINE_string(
     "Pose2 input file. "
     "format: [frame_id, x[mm], y[mm], z[mm], x, y, z, w]");
 
-DEFINE_string(config_file, "config.info", "Configuration file.");
+DEFINE_string(config_file, PACKAGE_PATH_MARKER "/conf/config.info", "Configuration file. The marker '" PACKAGE_PATH_MARKER "' gets replaced with this package's path."); //TODO find a solution for configuration files in installed packages.
 DEFINE_string(init_guess_file, "initial_guess.json", "Initial guess for the spatiotemporal extrinsics of the second sensor w.r.t. to the first.");
 DEFINE_string(output_file, "output.json", "Output for the spatiotemporal extrinsics of the second sensor w.r.t. to the first.");
 DEFINE_bool(use_jpl, false, "Use JPL quaternion convention.");
@@ -110,7 +112,14 @@ int main(int argc, char ** argv) {
   google::SetStderrLogging(FLAGS_v > 0 ? google::INFO : google::WARNING);
   google::InstallFailureSignalHandler();
 
-  auto vs_config = valueStoreFromFile(FLAGS_config_file);
+  std::string config_file = FLAGS_config_file;
+  auto marker_pos = config_file.find(PACKAGE_PATH_MARKER);
+  if (marker_pos != std::string::npos){
+    std::string package_path = ros::package::getPath("hand_eye_calibration_batch_estimation");
+    config_file = config_file.replace(marker_pos, strlen(PACKAGE_PATH_MARKER), package_path);
+  }
+  LOG(INFO) << "Loading " << config_file << " as base configuration file.";
+  auto vs_config = valueStoreFromFile(config_file);
   sm::BoostPropertyTree init_guess_file_bpt;
   auto vs_init_guess = valueStoreFromFile(FLAGS_init_guess_file, &init_guess_file_bpt);
   auto vs_model = ValueStoreRef(new sm::LayeredValueStore(ValueStoreRef(new sm::PrefixedValueStore(vs_init_guess, PrefixedValueStore::PrefixMode::REMOVE, "pose2")), vs_config.getChild("model")));

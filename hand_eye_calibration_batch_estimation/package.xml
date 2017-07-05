@@ -24,4 +24,5 @@
   <depend>glog_catkin</depend>
   <depend>oomact</depend>
 
+  <depend>roslib</depend>
 </package>
