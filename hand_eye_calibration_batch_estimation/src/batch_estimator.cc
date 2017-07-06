@@ -188,7 +188,7 @@ int main(int argc, char ** argv) {
 
   auto c = createBatchCalibrator(vs_config.getChild("calibrator"), std::shared_ptr<Model>(&model, sm::null_deleter()));
 
-  for (auto & m : pose1_sensor.getMeasurements()) {
+  for (auto & m : pose1_sensor.getAllMeasurements()) {
     c->addMeasurementTimestamp(m.first, pose1_sensor);  // add timestamps to determine the batch interval
   }
 
