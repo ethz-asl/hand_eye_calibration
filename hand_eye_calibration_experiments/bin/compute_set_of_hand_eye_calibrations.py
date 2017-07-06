@@ -7,11 +7,14 @@ import itertools
 import os
 import errno
 import sys
+import timeit
+
 
 import numpy as np
 
 from hand_eye_calibration.dual_quaternion import DualQuaternion
-from hand_eye_calibration.quaternion import Quaternion
+from hand_eye_calibration.quaternion import (
+    Quaternion, angle_between_quaternions)
 from hand_eye_calibration.dual_quaternion_hand_eye_calibration import (
     compute_hand_eye_calibration, compute_hand_eye_calibration_RANSAC,
     compute_hand_eye_calibration_BASELINE,
@@ -28,6 +31,57 @@ from hand_eye_calibration.bash_utils import run
 from hand_eye_calibration.calibration_verification import evaluate_calibration
 from hand_eye_calibration_experiments.all_algorithm_configs import get_all_configs
 from hand_eye_calibration_experiments.experiment_results import ResultEntry
+
+
+def spoil_initial_guess(time_offset_initial_guess, dq_H_E_initial_guess, max_angular_offset, max_translation_offset, max_time_offset):
+  """ Apply a random perturbation to the calibration."""
+
+  random_time_offset_offset = np.random.uniform(
+      -max_time_offset, max_time_offset)
+
+  # Get a random unit vector
+  random_translation_offset = np.random.random(3)
+  random_translation_offset /= np.linalg.norm(random_translation_offset)
+
+  # Scale unit vector to a random length between 0 and max_translation_offset.
+  random_translation_length = np.random.uniform(0., max_translation_offset)
+  random_translation_offset *= random_translation_length
+
+  # Get orientation offset of at most max_angular_offset.
+  random_quaternion_offset = Quaternion.get_random(0., max_angular_offset)
+
+  translation_initial_guess = dq_H_E_initial_guess.to_pose()[0:3]
+  orientation_initial_guess = dq_H_E_initial_guess.q_rot
+
+  translation_spoiled = random_translation_offset + translation_initial_guess
+  orientation_spoiled = random_quaternion_offset * orientation_initial_guess
+  time_offset_spoiled = time_offset_initial_guess + random_time_offset_offset
+
+  random_angle_offset = angle_between_quaternions(
+      orientation_initial_guess, orientation_spoiled)
+
+  assert random_angle_offset <= max_angular_offset
+
+  assert np.linalg.norm(translation_spoiled -
+                        translation_initial_guess) <= max_translation_offset
+
+  # Get random orientation that distorts the original orientation by at most
+  # max_angular_offset rad.
+  dq_H_E_spoiled = DualQuaternion.from_pose(
+      translation_spoiled[0], translation_spoiled[1], translation_spoiled[2],
+      orientation_spoiled.q[0], orientation_spoiled.q[1],
+      orientation_spoiled.q[2], orientation_spoiled.q[3])
+
+  print("dq_H_E_initial_guess: {}".format(dq_H_E_initial_guess.dq))
+  print("dq_H_E_spoiled: {}".format(dq_H_E_spoiled.dq))
+
+  print("time_offset_initial_guess: {}".format(time_offset_initial_guess))
+  print("time_offset_spoiled: {}".format(time_offset_spoiled))
+
+  print("random_quaternion_offset: {}".format(random_quaternion_offset.q))
+
+  return (time_offset_spoiled, dq_H_E_spoiled,
+          (random_translation_offset, random_angle_offset, random_time_offset_offset))
 
 
 def create_path(path):
@@ -162,7 +216,7 @@ if __name__ == "__main__":
     for iteration in range(0, num_iterations):
 
       result_entry = ResultEntry()
-      result_entry.init_from_configs(algorithm_name, filtering_config,
+      result_entry.init_from_configs(algorithm_name, iteration, filtering_config,
                                      hand_eye_config, optimization_config)
 
       results_dq_H_E = []
@@ -194,84 +248,105 @@ if __name__ == "__main__":
         print("Found ", time_stamped_poses_W_E.shape[0],
               " poses in file: ", pose_file_W_E)
 
-        if not optimization_config.optimization_only:
+        # No time offset.
+        time_offset_initial_guess = 0
+        # Unit DualQuaternion.
+        dq_H_E_initial_guess = DualQuaternion.from_vector(
+            [0., 0., 0., 1.0, 0., 0., 0., 0.])
 
-          print("Computing time offset...")
-          time_offset = calculate_time_offset(times_B_H, quaternions_B_H, times_W_E,
-                                              quaternions_W_E, filtering_config, args.visualize)
+        print("Computing time offset...")
+        time_offset_initial_guess = calculate_time_offset(times_B_H, quaternions_B_H, times_W_E,
+                                                          quaternions_W_E, filtering_config, args.visualize)
 
-          print("Time offset: {}s".format(time_offset))
+        print("Time offset: {}s".format(time_offset_initial_guess))
 
-          print("Computing aligned poses...")
-          (aligned_poses_B_H, aligned_poses_W_E) = compute_aligned_poses(
-              time_stamped_poses_B_H, time_stamped_poses_W_E, time_offset, args.visualize)
+        print("Computing aligned poses...")
+        (aligned_poses_B_H, aligned_poses_W_E) = compute_aligned_poses(
+            time_stamped_poses_B_H, time_stamped_poses_W_E, time_offset_initial_guess, args.visualize)
 
-          # Convert poses to dual quaterions.
-          dual_quat_B_H_vec = [DualQuaternion.from_pose_vector(
-              aligned_pose_B_H) for aligned_pose_B_H in aligned_poses_B_H[:, 1:]]
-          dual_quat_W_E_vec = [DualQuaternion.from_pose_vector(
-              aligned_pose_W_E) for aligned_pose_W_E in aligned_poses_W_E[:, 1:]]
+        # Convert poses to dual quaterions.
+        dual_quat_B_H_vec = [DualQuaternion.from_pose_vector(
+            aligned_pose_B_H) for aligned_pose_B_H in aligned_poses_B_H[:, 1:]]
+        dual_quat_W_E_vec = [DualQuaternion.from_pose_vector(
+            aligned_pose_W_E) for aligned_pose_W_E in aligned_poses_W_E[:, 1:]]
 
-          assert len(dual_quat_B_H_vec) == len(dual_quat_W_E_vec), "len(dual_quat_B_H_vec): {} vs len(dual_quat_W_E_vec): {}".format(
-              len(dual_quat_B_H_vec), len(dual_quat_W_E_vec))
+        assert len(dual_quat_B_H_vec) == len(dual_quat_W_E_vec), "len(dual_quat_B_H_vec): {} vs len(dual_quat_W_E_vec): {}".format(
+            len(dual_quat_B_H_vec), len(dual_quat_W_E_vec))
 
-          dual_quat_B_H_vec = align_paths_at_index(dual_quat_B_H_vec)
-          dual_quat_W_E_vec = align_paths_at_index(dual_quat_W_E_vec)
+        dual_quat_B_H_vec = align_paths_at_index(dual_quat_B_H_vec)
+        dual_quat_W_E_vec = align_paths_at_index(dual_quat_W_E_vec)
 
-          # Draw both paths in their Global / World frame.
-          if args.visualize:
-            poses_B_H = np.array([dual_quat_B_H_vec[0].to_pose().T])
-            poses_W_E = np.array([dual_quat_W_E_vec[0].to_pose().T])
-            for i in range(1, len(dual_quat_B_H_vec)):
-              poses_B_H = np.append(poses_B_H, np.array(
-                  [dual_quat_B_H_vec[i].to_pose().T]), axis=0)
-              poses_W_E = np.append(poses_W_E, np.array(
-                  [dual_quat_W_E_vec[i].to_pose().T]), axis=0)
-            every_nth_element = args.plot_every_nth_pose
-            plot_poses([poses_B_H[::every_nth_element], poses_W_E[::every_nth_element]],
-                       True, title="3D Poses Before Alignment")
+        # Draw both paths in their Global / World frame.
+        if args.visualize:
+          poses_B_H = np.array([dual_quat_B_H_vec[0].to_pose().T])
+          poses_W_E = np.array([dual_quat_W_E_vec[0].to_pose().T])
+          for i in range(1, len(dual_quat_B_H_vec)):
+            poses_B_H = np.append(poses_B_H, np.array(
+                [dual_quat_B_H_vec[i].to_pose().T]), axis=0)
+            poses_W_E = np.append(poses_W_E, np.array(
+                [dual_quat_W_E_vec[i].to_pose().T]), axis=0)
+          every_nth_element = args.plot_every_nth_pose
+          plot_poses([poses_B_H[::every_nth_element], poses_W_E[::every_nth_element]],
+                     True, title="3D Poses Before Alignment")
 
-          print("Computing hand-eye calibration...")
+        print("Computing hand-eye calibration...")
 
-          if hand_eye_config.use_baseline_approach:
-            (success, dq_H_E, rmse,
-             num_inliers, num_poses_kept,
-             runtime, singular_values, bad_singular_values) = compute_hand_eye_calibration_BASELINE(
-                dual_quat_B_H_vec, dual_quat_W_E_vec, hand_eye_config)
-          else:
-            (success, dq_H_E, rmse,
-             num_inliers, num_poses_kept,
-             runtime, singular_values, bad_singular_values) = compute_hand_eye_calibration_RANSAC(
-                dual_quat_B_H_vec, dual_quat_W_E_vec, hand_eye_config)
-
-          # Write results to file for the optimization.
-          calib = ExtrinsicCalibration(
-              time_offset, dq_H_E)
-          calib.writeJson(initial_guess_calibration_file)
-
-        else:  # Run optimization only mode.
-          # No time offset.
-          time_offset_initial_guess = 0
-          # Unit DualQuaternion.
-          dq_H_E_initial_guess = DualQuaternion.from_vector(
-              [0., 0., 0., 1.0, 0., 0., 0., 0.])
-
-          # Write some initial guess into the optimization input file.
-          initial_guess_calibration = ExtrinsicCalibration(
-              time_offset_initial_guess, dq_H_E_initial_guess)
-          initial_guess_calibration.writeJson(initial_guess_calibration_file)
+        if hand_eye_config.use_baseline_approach:
+          (success, dq_H_E_initial_guess, rmse,
+           num_inliers, num_poses_kept,
+           runtime, singular_values, bad_singular_values) = compute_hand_eye_calibration_BASELINE(
+              dual_quat_B_H_vec, dual_quat_W_E_vec, hand_eye_config)
+        else:
+          (success, dq_H_E_initial_guess, rmse,
+           num_inliers, num_poses_kept,
+           runtime, singular_values, bad_singular_values) = compute_hand_eye_calibration_RANSAC(
+              dual_quat_B_H_vec, dual_quat_W_E_vec, hand_eye_config)
 
         # Fill in result entries.
-        result_entry.dataset_names.append((pose_file_B_H, pose_file_W_E))
         result_entry.success.append(success)
         result_entry.num_initial_poses.append(len(dual_quat_B_H_vec))
         result_entry.num_poses_kept.append(num_poses_kept)
         result_entry.runtimes.append(runtime)
         result_entry.singular_values.append(singular_values)
         result_entry.bad_singular_value.append(bad_singular_values)
+        result_entry.dataset_names.append((pose_file_B_H, pose_file_W_E))
+
+        # # Write some initial guess into the optimization input file.
+        # initial_guess_calibration = ExtrinsicCalibration(
+        #     time_offset_initial_guess, dq_H_E_initial_guess)
+        # initial_guess_calibration.writeJson(initial_guess_calibration_file)
+        #
+        # # Fill in dummy result entries.
+        # result_entry.success.append(True)
+        # result_entry.num_initial_poses.append(0)
+        # result_entry.num_poses_kept.append(0)
+        # result_entry.runtimes.append(0)
+        # result_entry.singular_values.append(None)
+        # result_entry.bad_singular_value.append(False)
+
+        # Fill in result entries.
 
         # Run optimization if enabled.
         if optimization_config.enable_optimization:
+
+          random_translation_offset = None
+          random_angle_offset = None
+          random_time_offset_offset = None
+
+          if optimization_config.optimization_only:
+            (time_offset_initial_guess, dq_H_E_initial_guess,
+             (random_translation_offset, random_angle_offset,
+              random_time_offset_offset)) = spoil_initial_guess(
+                time_offset_initial_guess, dq_H_E_initial_guess,
+                optimization_config.max_orientation_angle_offset,
+                optimization_config.max_translation_offset,
+                optimization_config.max_time_offset)
+
+          # Write initial guess to file for the optimization.
+          initial_guess = ExtrinsicCalibration(
+              time_offset_initial_guess, dq_H_E_initial_guess)
+          initial_guess.writeJson(initial_guess_calibration_file)
+
           optimized_calibration_file = "{}/optimization/{}_pose_pair_{}_it_{}_optimized.json".format(
               args.result_directory, algorithm_name, pose_pair_num, iteration)
           create_path(optimized_calibration_file)
@@ -287,7 +362,9 @@ if __name__ == "__main__":
                                  "pose2/absoluteMeasurements={}").format(
               is_absolute_sensor_B_H, is_absolute_sensor_W_E).lower()
 
+          optimization_runtime = 0
           try:
+            optimization_start_time = timeit.default_timer()
             run("rosrun hand_eye_calibration_batch_estimation batch_estimator -v 1 \
               --pose1_csv=%s --pose2_csv=%s \
               --init_guess_file=%s \
@@ -296,6 +373,9 @@ if __name__ == "__main__":
                                     initial_guess_calibration_file,
                                     optimized_calibration_file,
                                     model_config_string))
+            optimization_end_time = timeit.default_timer()
+            optimization_runtime = optimization_end_time - optimization_start_time
+
           except Exception as ex:
             print("Optimization failed: {}".format(ex))
             optimization_success = False
@@ -304,11 +384,15 @@ if __name__ == "__main__":
           if optimization_success:
             optimized_calibration = ExtrinsicCalibration.fromJson(
                 optimized_calibration_file)
-            initial_guess_calibration = ExtrinsicCalibration.fromJson(
-                initial_guess_calibration_file)
 
             dq_H_E_optimized = optimized_calibration.pose_dq
             time_offset_optimized = optimized_calibration.time_offset
+
+            print("Initial guess time offset: \t{}".format(
+                time_offset_initial_guess))
+            print("Optimized time offset: \t\t{}".format(time_offset_optimized))
+            print("Initial guess dq_H_E: \t\t{}".format(dq_H_E_initial_guess))
+            print("Optimized dq_H_E: \t\t{}".format(dq_H_E_optimized))
 
             (rmse_optimized,
              num_inliers_optimized) = evaluate_calibration(time_stamped_poses_B_H,
@@ -316,17 +400,16 @@ if __name__ == "__main__":
                                                            dq_H_E_optimized,
                                                            time_offset_optimized,
                                                            hand_eye_config)
-
-            print("Solution found by optimization\n"
-                  "\t\tNumber of inliers: {}\n"
-                  "\t\tRMSE position:     {:10.4f}\n"
-                  "\t\tRMSE orientation:  {:10.4f}".format(num_inliers_optimized, rmse_optimized[0],
-                                                           rmse_optimized[1]))
-
-            print("Initial guess time offset: \t{}".format(time_offset))
-            print("Optimized time offset: \t\t{}".format(time_offset_optimized))
-            print("Initial guess dq_H_E: \t\t{}".format(dq_H_E))
-            print("Optimized dq_H_E: \t\t{}".format(dq_H_E_optimized))
+            if num_inliers_optimized == 0:
+              print("Could not evaluate calibration, no matching poses found!")
+              optimization_success = False
+            else:
+              print("Solution found by optimization\n"
+                    "\t\tNumber of inliers: {}\n"
+                    "\t\tRMSE position:     {:10.4f}\n"
+                    "\t\tRMSE orientation:  {:10.4f}".format(num_inliers_optimized,
+                                                             rmse_optimized[0],
+                                                             rmse_optimized[1]))
 
           # Store results.
           if dq_H_E_optimized is not None:
@@ -335,21 +418,30 @@ if __name__ == "__main__":
             results_poses_H_E.append(None)
           results_dq_H_E.append(dq_H_E_optimized)
 
+          result_entry.spoiled_initial_guess_angle_offset.append(
+              random_angle_offset)
+          result_entry.spoiled_initial_guess_translation_offset.append(
+              random_translation_offset)
+          result_entry.spoiled_initial_guess_time_offset.append(
+              random_time_offset_offset)
+
           result_entry.optimization_success.append(optimization_success)
           result_entry.rmse.append(rmse_optimized)
           result_entry.num_inliers.append(num_inliers_optimized)
+          result_entry.optimization_runtime.append(optimization_runtime)
 
         else:  # Use result of initial algorithms without optimization
 
-          if dq_H_E is not None:
-            results_poses_H_E.append(dq_H_E.to_pose())
+          if dq_H_E_initial_guess is not None:
+            results_poses_H_E.append(dq_H_E_initial_guess.to_pose())
           else:
             results_poses_H_E.append(None)
-          results_dq_H_E.append(dq_H_E)
+          results_dq_H_E.append(dq_H_E_initial_guess)
 
           result_entry.rmse.append(rmse)
           result_entry.num_inliers.append(num_inliers)
           result_entry.optimization_success.append(True)
+          result_entry.optimization_runtime.append(0)
 
         pose_pair_num = pose_pair_num + 1
 
@@ -362,7 +454,7 @@ if __name__ == "__main__":
       # If optimization is disabled, optimization_success should always be True.
       if sum(result_entry.optimization_success) == num_pose_pairs:
         (result_entry.loop_error_position,
-         result_entry.loop_error_orientation) = compute_loop_error(results_dq_H_E, args.visualize)
+         result_entry.loop_error_orientation) = compute_loop_error(results_dq_H_E, True)
       else:
         print("Error: No loop error computed because not all pose pairs were successfully calibrated!")
 

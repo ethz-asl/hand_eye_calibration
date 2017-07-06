@@ -23,11 +23,16 @@ class ResultEntry:
     self.bad_singular_value = []
     self.optimization_enabled = False
     self.optimization_success = []
+    self.optimization_runtime = []
+    self.spoiled_initial_guess_angle_offset = []
+    self.spoiled_initial_guess_translation_offset = []
+    self.spoiled_initial_guess_time_offset = []
 
-  def init_from_configs(self, name, time_alignment_config, hand_eye_config, optimization_config):
+  def init_from_configs(self, name, iteration, time_alignment_config, hand_eye_config, optimization_config):
     self.algorithm_name = name
     self.prefiltering = hand_eye_config.prefilter_poses_enabled
     self.optimization_enabled = optimization_config.enable_optimization
+    self.iteration_num = iteration
 
   def check_length(self, num_pose_pairs):
     assert len(self.dataset_names) == num_pose_pairs
@@ -40,6 +45,10 @@ class ResultEntry:
     assert len(self.singular_values) == num_pose_pairs
     assert len(self.bad_singular_value) == num_pose_pairs
     assert len(self.optimization_success) == num_pose_pairs
+    assert len(self.optimization_runtime) == num_pose_pairs
+    assert len(self.spoiled_initial_guess_angle_offset) == num_pose_pairs
+    assert len(self.spoiled_initial_guess_translation_offset) == num_pose_pairs
+    assert len(self.spoiled_initial_guess_time_offset) == num_pose_pairs
 
   def get_header(self):
     return ("algorithm_name,"
@@ -61,10 +70,18 @@ class ResultEntry:
             "singular_values,"
             "bad_singular_values,"
             "optimization_enabled,"
-            "optimization_success\n")
+            "optimization_success,"
+            "optimization_runtime_s,"
+            "spoiled_initial_guess_angle_offset,"
+            "spoiled_initial_guess_translation_offset,"
+            "spoiled_initial_guess_time_offset"
+            "\n")
 
   def write_pose_pair_to_csv_line(self, num_pose_pairs):
-    return "{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{}\n".format(
+
+    singular_values = self.singular_values[num_pose_pairs]
+
+    return "{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{}\n".format(
         self.algorithm_name,
         num_pose_pairs,
         self.iteration_num,
@@ -80,8 +97,12 @@ class ResultEntry:
         self.runtimes[num_pose_pairs],
         self.loop_error_position,
         self.loop_error_orientation,
-        np.array_str(
-            self.singular_values[num_pose_pairs], max_line_width=1000000),
+        ("" if singular_values is None else np.array_str(
+            singular_values, max_line_width=1000000)),
         self.bad_singular_value[num_pose_pairs],
         self.optimization_enabled,
-        self.optimization_success[num_pose_pairs])
+        self.optimization_success[num_pose_pairs],
+        self.optimization_runtime[num_pose_pairs],
+        self.spoiled_initial_guess_angle_offset[num_pose_pairs],
+        self.spoiled_initial_guess_translation_offset[num_pose_pairs],
+        self.spoiled_initial_guess_time_offset[num_pose_pairs])

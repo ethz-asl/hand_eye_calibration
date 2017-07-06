@@ -1,5 +1,7 @@
 # -*- coding: utf-8 -*-
 
+import math
+
 from hand_eye_calibration.dual_quaternion_hand_eye_calibration import (
     evaluate_alignment, align_paths_at_index, get_aligned_poses)
 from hand_eye_calibration.time_alignment import compute_aligned_poses
@@ -14,8 +16,11 @@ def evaluate_calibration(time_stamped_poses_B_H, time_stamped_poses_W_E, dq_H_E,
 
   (aligned_poses_B_H, aligned_poses_W_E) = compute_aligned_poses(
       time_stamped_poses_B_H, time_stamped_poses_W_E, time_offset)
-  assert len(aligned_poses_B_H) > 0
   assert len(aligned_poses_B_H) == len(aligned_poses_W_E)
+
+  # If we found not matching poses, the evaluation failed.
+  if len(aligned_poses_B_H) == 0:
+    return ((float('inf'), float('inf')), 0)
 
   # Convert poses to dual quaterions.
   dual_quat_B_H_vec = [DualQuaternion.from_pose_vector(
