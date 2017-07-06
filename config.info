@@ -1,0 +1,75 @@
+model {
+	Gravity {
+		used false
+	}
+
+	pose1 {
+		frame body
+		targetFrame world
+
+		covPosition { sigma "0.01" }
+		covOrientation { sigma "0.01" }
+
+		absoluteMeasurements true
+
+		rotation {
+			used false
+			yaw 0
+			pitch 0
+			roll 0
+		}
+		translation {
+			used false
+		}
+		delay {
+			used false
+		}
+	}
+	pose2 {
+		frame body
+		targetFrame world
+
+		covPosition { sigma "0.01" }
+		covOrientation { sigma "0.01" }
+
+		absoluteMeasurements false
+
+		delay
+		{
+			relativeBounds true
+			upperBound 1
+			lowerBound -1
+		}
+    mestimator
+		{
+      name "Cauchy"
+      cauchySigma2 "10"
+    }
+
+	}
+
+	traj {
+		frame body
+		referenceFrame world
+		initWithPoseMeasurements true
+		McSensor pose1
+		splines {
+			knotsPerSecond 10
+			rotSplineOrder 4
+			rotFittingLambda 0.0000001
+			transSplineOrder 4
+			transFittingLambda 0.0000001
+		}
+	}
+}
+
+calibrator {
+	verbose true
+	acceptConstantErrorTerms true
+	timeBaseSensor pose1
+	estimator {
+		optimizer {
+			maxIterations 100
+		}
+	}
+}
