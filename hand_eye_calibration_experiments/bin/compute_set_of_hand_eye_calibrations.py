@@ -311,21 +311,6 @@ if __name__ == "__main__":
         result_entry.bad_singular_value.append(bad_singular_values)
         result_entry.dataset_names.append((pose_file_B_H, pose_file_W_E))
 
-        # # Write some initial guess into the optimization input file.
-        # initial_guess_calibration = ExtrinsicCalibration(
-        #     time_offset_initial_guess, dq_H_E_initial_guess)
-        # initial_guess_calibration.writeJson(initial_guess_calibration_file)
-        #
-        # # Fill in dummy result entries.
-        # result_entry.success.append(True)
-        # result_entry.num_initial_poses.append(0)
-        # result_entry.num_poses_kept.append(0)
-        # result_entry.runtimes.append(0)
-        # result_entry.singular_values.append(None)
-        # result_entry.bad_singular_value.append(False)
-
-        # Fill in result entries.
-
         # Run optimization if enabled.
         if optimization_config.enable_optimization:
 
@@ -454,7 +439,7 @@ if __name__ == "__main__":
       # If optimization is disabled, optimization_success should always be True.
       if sum(result_entry.optimization_success) == num_pose_pairs:
         (result_entry.loop_error_position,
-         result_entry.loop_error_orientation) = compute_loop_error(results_dq_H_E, True)
+         result_entry.loop_error_orientation) = compute_loop_error(results_dq_H_E, args.visualize)
       else:
         print("Error: No loop error computed because not all pose pairs were successfully calibrated!")
 
