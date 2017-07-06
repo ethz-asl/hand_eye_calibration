@@ -423,6 +423,11 @@ if __name__ == "__main__":
             results_poses_H_E.append(None)
           results_dq_H_E.append(dq_H_E_initial_guess)
 
+          result_entry.spoiled_initial_guess_angle_offset.append(0)
+          result_entry.spoiled_initial_guess_translation_offset.append([
+                                                                       0, 0, 0])
+          result_entry.spoiled_initial_guess_time_offset.append(0)
+
           result_entry.rmse.append(rmse)
           result_entry.num_inliers.append(num_inliers)
           result_entry.optimization_success.append(True)
