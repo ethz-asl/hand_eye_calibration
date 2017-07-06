@@ -2,6 +2,8 @@ from numbers import Number
 
 import numpy as np
 
+import random
+
 
 class Quaternion(object):
   """ Hamiltonian quaternion denoted as q = [x y z w].T.
@@ -118,6 +120,16 @@ class Quaternion(object):
     if q_norm > 1e-16:
       q *= np.sin(angle / 2.0) / q_norm
     q.q[3] = np.cos(angle / 2.0)
+    return cls(q=q.q.copy())
+
+  @classmethod
+  def get_random(cls, min_angle=0., max_angle=np.math.pi):
+    axis = (np.random.random(3) * 2.) - 1.
+    axis /= np.linalg.norm(axis)
+
+    angle = random.uniform(
+        min_angle, max_angle)
+    q = cls.from_angle_axis(angle, axis)
     return cls(q=q.q.copy())
 
   def angle_axis(self):
