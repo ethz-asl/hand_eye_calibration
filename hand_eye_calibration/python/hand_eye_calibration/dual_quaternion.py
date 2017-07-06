@@ -127,7 +127,11 @@ class DualQuaternion(object):
 
   @classmethod
   def from_vector(cls, dq):
-    dual_quaternion_vector = dq.copy()  # TODO(ff): copy only if numpy instance.
+    dual_quaternion_vector = None
+    if isinstance(dq, np.ndarray):
+      dual_quaternion_vector = dq.copy()
+    else:
+      dual_quaternion_vector = np.array(dq)
     return cls(Quaternion(q=dual_quaternion_vector[0:4]),
                Quaternion(q=dual_quaternion_vector[4:8]))
 
