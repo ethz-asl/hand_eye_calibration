@@ -104,5 +104,6 @@ class ResultEntry:
         self.optimization_success[num_pose_pairs],
         self.optimization_runtime[num_pose_pairs],
         self.spoiled_initial_guess_angle_offset[num_pose_pairs],
-        self.spoiled_initial_guess_translation_offset[num_pose_pairs],
+        ("" if self.spoiled_initial_guess_translation_offset[num_pose_pairs] is None else np.array_str(
+            self.spoiled_initial_guess_translation_offset[num_pose_pairs], max_line_width=1000000)),
         self.spoiled_initial_guess_time_offset[num_pose_pairs])
