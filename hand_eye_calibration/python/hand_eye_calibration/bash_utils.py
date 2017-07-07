@@ -25,3 +25,12 @@ def run(cmd, dry_run=False):
   if exit_code != 0:
     raise Exception("Cmd '%s' returned nozero exit code : %d" %
                     (cmd, exit_code))
+
+
+def create_path(path):
+  if not os.path.exists(os.path.dirname(path)):
+    try:
+      os.makedirs(os.path.dirname(path))
+    except OSError as exc:  # Guard against race condition
+      if exc.errno != errno.EEXIST:
+        raise

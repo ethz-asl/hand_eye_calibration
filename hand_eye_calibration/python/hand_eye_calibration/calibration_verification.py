@@ -3,9 +3,10 @@
 import math
 
 from hand_eye_calibration.dual_quaternion_hand_eye_calibration import (
-    evaluate_alignment, align_paths_at_index, get_aligned_poses)
+    evaluate_alignment, align_paths_at_index, get_aligned_poses, compute_pose_error)
 from hand_eye_calibration.time_alignment import compute_aligned_poses
 from hand_eye_calibration.dual_quaternion import DualQuaternion
+from hand_eye_calibration.quaternion import Quaternion
 from hand_eye_calibration.dual_quaternion_hand_eye_calibration import HandEyeConfig
 
 
@@ -18,7 +19,7 @@ def evaluate_calibration(time_stamped_poses_B_H, time_stamped_poses_W_E, dq_H_E,
       time_stamped_poses_B_H, time_stamped_poses_W_E, time_offset)
   assert len(aligned_poses_B_H) == len(aligned_poses_W_E)
 
-  # If we found not matching poses, the evaluation failed.
+  # If we found no matching poses, the evaluation failed.
   if len(aligned_poses_B_H) == 0:
     return ((float('inf'), float('inf')), 0)
 
@@ -43,3 +44,53 @@ def evaluate_calibration(time_stamped_poses_B_H, time_stamped_poses_W_E, dq_H_E,
    inlier_flags) = evaluate_alignment(poses_B_H, poses_W_H, config)
 
   return ((rmse_position, rmse_orientation), sum(inlier_flags))
+
+
+def compute_loop_error(results_dq_H_E, num_poses_sets, visualize=False):
+  calibration_transformation_chain = []
+
+  # Add point at origin to represent the first coordinate
+  # frame in the chain of transformations.
+  calibration_transformation_chain.append(
+      DualQuaternion(Quaternion(0, 0, 0, 1), Quaternion(0, 0, 0, 0)))
+
+  # Add first transformation
+  calibration_transformation_chain.append(results_dq_H_E[0])
+
+  # Create chain of transformations from the first frame to the last.
+  i = 0
+  idx = 0
+  while i < (num_poses_sets - 2):
+    idx += (num_poses_sets - i - 1)
+    calibration_transformation_chain.append(results_dq_H_E[idx])
+    i += 1
+
+  # Add inverse of first to last frame to close the loop.
+  calibration_transformation_chain.append(
+      results_dq_H_E[num_poses_sets - 2].inverse())
+
+  # Check loop.
+  assert len(calibration_transformation_chain) == (num_poses_sets + 1), (
+      len(calibration_transformation_chain), (num_poses_sets + 1))
+
+  # Chain the transformations together to get points we can plot.
+  poses_to_plot = []
+  dq_tmp = DualQuaternion(Quaternion(0, 0, 0, 1), Quaternion(0, 0, 0, 0))
+  for i in range(0, len(calibration_transformation_chain)):
+    dq_tmp *= calibration_transformation_chain[i]
+    poses_to_plot.append(dq_tmp.to_pose())
+
+  (loop_error_position, loop_error_orientation) = compute_pose_error(poses_to_plot[0],
+                                                                     poses_to_plot[-1])
+
+  print("Error when closing the loop of hand eye calibrations - position: {}"
+        " m orientation: {} deg".format(loop_error_position,
+                                        loop_error_orientation))
+
+  if visualize:
+    assert len(poses_to_plot) == len(calibration_transformation_chain)
+    plot_poses([np.array(poses_to_plot)], plot_arrows=True,
+               title="Hand-Eye Calibration Results - Closing The Loop")
+
+  # Compute error of loop.
+  return (loop_error_position, loop_error_orientation)

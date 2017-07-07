@@ -1,7 +1,6 @@
 from numbers import Number
 
 import numpy as np
-
 import random
 
 
@@ -124,7 +123,7 @@ class Quaternion(object):
 
   @classmethod
   def get_random(cls, min_angle=0., max_angle=np.math.pi):
-    axis = (np.random.random(3) * 2.) - 1.
+    axis = np.random.uniform(-1.0, 1.0, 3)
     axis /= np.linalg.norm(axis)
 
     angle = random.uniform(

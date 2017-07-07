@@ -16,11 +16,6 @@ class OptimizationConfig:
     self.enable_optimization = True
     self.optimization_only = False
 
-    # Settings for creating a spoiled initial guess
-    self.max_time_offset = 2
-    self.max_orientation_angle_offset = 10. / 180. * np.math.pi
-    self.max_translation_offset = 0.05
-
 
 def get_all_configs():
   return [
@@ -39,14 +34,12 @@ def get_all_configs():
       get_RS_and_optimization_config(True, True),
       get_RS_and_optimization_config(False, True),
 
-      get_EC_and_optimization_config(False),
-      get_EC_and_optimization_config(True),
-
-      get_ES_and_optimization_config(False),
-      get_ES_and_optimization_config(True),
-
-      get_optimization_with_spoiled_initial_transform_config(),
-      get_optimization_with_spoiled_initial_calibration_config()]
+      # get_EC_and_optimization_config(False),
+      # get_EC_and_optimization_config(True),
+      #
+      # get_ES_and_optimization_config(False),
+      # get_ES_and_optimization_config(True),
+  ]
 
 
 def get_baseline_and_optimization_config(enable_filtering, enable_optimization):
@@ -160,24 +153,5 @@ def get_optimization_with_spoiled_initial_calibration_config():
   optimiztion_config.optimization_only = True
 
   algorithm_name = "optimization_w_spoiled_init_calibration"
-
-  return (algorithm_name, time_alignment_config, hand_eye_config, optimiztion_config)
-
-
-def get_optimization_with_spoiled_initial_transform_config():
-  """
-  Get configuration struct for end-to-end testing for:
-    "Optimization with spoiled initial transform" algorithm.
-  """
-
-  (time_alignment_config, hand_eye_config) = get_exhaustive_search_scalar_part_inliers_config()
-
-  optimiztion_config = OptimizationConfig()
-  optimiztion_config.enable_optimization = True
-  optimiztion_config.optimization_only = True
-
-  algorithm_name = "optimization_w_spoiled_initial_transform"
-
-  optimiztion_config.max_time_offset = 0
 
   return (algorithm_name, time_alignment_config, hand_eye_config, optimiztion_config)

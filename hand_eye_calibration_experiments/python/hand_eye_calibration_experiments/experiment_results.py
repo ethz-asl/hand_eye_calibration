@@ -35,20 +35,34 @@ class ResultEntry:
     self.iteration_num = iteration
 
   def check_length(self, num_pose_pairs):
-    assert len(self.dataset_names) == num_pose_pairs
-    assert len(self.success) == num_pose_pairs
-    assert len(self.rmse) == num_pose_pairs
-    assert len(self.num_inliers) == num_pose_pairs
-    assert len(self.num_initial_poses) == num_pose_pairs
-    assert len(self.num_poses_kept) == num_pose_pairs
-    assert len(self.runtimes) == num_pose_pairs
-    assert len(self.singular_values) == num_pose_pairs
-    assert len(self.bad_singular_value) == num_pose_pairs
-    assert len(self.optimization_success) == num_pose_pairs
-    assert len(self.optimization_runtime) == num_pose_pairs
-    assert len(self.spoiled_initial_guess_angle_offset) == num_pose_pairs
-    assert len(self.spoiled_initial_guess_translation_offset) == num_pose_pairs
-    assert len(self.spoiled_initial_guess_time_offset) == num_pose_pairs
+    assert len(self.dataset_names) == num_pose_pairs, "{} vs {}".format(
+        len(self.dataset_names), num_pose_pairs)
+    assert len(self.success) == num_pose_pairs, "{} vs {}".format(
+        len(self.success), num_pose_pairs)
+    assert len(self.rmse) == num_pose_pairs, "{} vs {}".format(
+        len(self.rmse), num_pose_pairs)
+    assert len(self.num_inliers) == num_pose_pairs, "{} vs {}".format(
+        len(self.num_inliers), num_pose_pairs)
+    assert len(self.num_initial_poses) == num_pose_pairs, "{} vs {}".format(
+        len(self.num_initial_poses), num_pose_pairs)
+    assert len(self.num_poses_kept) == num_pose_pairs, "{} vs {}".format(
+        len(self.num_poses_kept), num_pose_pairs)
+    assert len(self.runtimes) == num_pose_pairs, "{} vs {}".format(
+        len(self.runtimes), num_pose_pairs)
+    assert len(self.singular_values) == num_pose_pairs, "{} vs {}".format(
+        len(self.singular_values), num_pose_pairs)
+    assert len(self.bad_singular_value) == num_pose_pairs, "{} vs {}".format(
+        len(self.bad_singular_value), num_pose_pairs)
+    assert len(self.optimization_success) == num_pose_pairs, "{} vs {}".format(
+        len(self.optimization_success), num_pose_pairs)
+    assert len(self.optimization_runtime) == num_pose_pairs, "{} vs {}".format(
+        len(self.optimization_runtime), num_pose_pairs)
+    assert len(self.spoiled_initial_guess_angle_offset) == num_pose_pairs, "{} vs {}".format(
+        len(self.spoiled_initial_guess_angle_offset), num_pose_pairs)
+    assert len(self.spoiled_initial_guess_translation_offset) == num_pose_pairs, "{} vs {}".format(
+        len(self.spoiled_initial_guess_translation_offset), num_pose_pairs)
+    assert len(self.spoiled_initial_guess_time_offset) == num_pose_pairs, "{} vs {}".format(
+        len(self.spoiled_initial_guess_time_offset), num_pose_pairs)
 
   def get_header(self):
     return ("algorithm_name,"
@@ -104,6 +118,6 @@ class ResultEntry:
         self.optimization_success[num_pose_pairs],
         self.optimization_runtime[num_pose_pairs],
         self.spoiled_initial_guess_angle_offset[num_pose_pairs],
-        ("" if self.spoiled_initial_guess_translation_offset[num_pose_pairs] is None else np.array_str(
+        (None if self.spoiled_initial_guess_translation_offset[num_pose_pairs] is None else np.array_str(
             self.spoiled_initial_guess_translation_offset[num_pose_pairs], max_line_width=1000000)),
         self.spoiled_initial_guess_time_offset[num_pose_pairs])
