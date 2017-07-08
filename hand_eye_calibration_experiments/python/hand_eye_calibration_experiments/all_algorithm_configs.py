@@ -34,11 +34,11 @@ def get_all_configs():
       get_RS_and_optimization_config(True, True),
       get_RS_and_optimization_config(False, True),
 
-      # get_EC_and_optimization_config(False),
-      # get_EC_and_optimization_config(True),
-      #
-      # get_ES_and_optimization_config(False),
-      # get_ES_and_optimization_config(True),
+      get_EC_and_optimization_config(False),
+      get_EC_and_optimization_config(True),
+
+      get_ES_and_optimization_config(False),
+      get_ES_and_optimization_config(True),
   ]
 
 
