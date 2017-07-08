@@ -40,6 +40,11 @@ model {
 			upperBound 1
 			lowerBound -1
 		}
+		mestimator
+		{
+			name "Cauchy"
+			cauchySigma2 "10"
+ 		}
 	}
 
 	traj {
