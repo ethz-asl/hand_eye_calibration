@@ -54,6 +54,9 @@ if __name__ == "__main__":
                       'Only applicable to non - deterministic algorithms!', default=2)
   args = parser.parse_args()
 
+  print(args.aligned_poses_B_H_csv_files)
+  print(args.is_absolute_pose_sensor)
+
   assert args.aligned_poses_B_H_csv_files is not None
 
   poses_B_H_csv_files = args.aligned_poses_B_H_csv_files
@@ -73,7 +76,7 @@ if __name__ == "__main__":
   set_of_is_absolute_sensor_flags = list(
       itertools.combinations(is_absolute_pose_sensor_flags, 2))
   num_pose_pairs = len(set_of_pose_pairs)
-  assert len(set_of_pose_pairs) == len(is_absolute_pose_sensor_flags)
+  assert len(set_of_pose_pairs) == len(set_of_is_absolute_sensor_flags)
 
   # Prepare result file.
   result_file_path = args.result_directory + "/results.csv"

@@ -236,7 +236,7 @@ if __name__ == "__main__":
   set_of_is_absolute_sensor_flags = list(
       itertools.combinations(is_absolute_pose_sensor_flags, 2))
   num_pose_pairs = len(set_of_pose_pairs)
-  assert len(set_of_pose_pairs) == len(is_absolute_pose_sensor_flags)
+  assert len(set_of_pose_pairs) == len(set_of_is_absolute_sensor_flags)
 
   # Prepare result file.
   result_file_path = args.result_directory + "/results_optimization.csv"
@@ -260,11 +260,14 @@ if __name__ == "__main__":
   # Define parameter ranges for experiment.
   time_offset_ranges = [[0., 0.2], [0.2, 0.4],
                         [0.4, 0.6], [0.6, 0.8], [0.8, 1.0]]
-  angle_offset_ranges = [[0., 5.], [5., 10.], [10., 15.], [15., 20.], [20., 25.],
-                         [25., 30.], [30., 35.]]
+  angle_offset_ranges = [[0., 5.], [5., 10.], [10., 15.], [15., 20.]]
+# Convert degrees to rad.
+  for angle_offset_range in angle_offset_ranges:
+    angle_offset_range[0] = angle_offset_range[0] / 180. * np.math.pi
+    angle_offset_range[1] = angle_offset_range[1] / 180. * np.math.pi
+
   translation_offset_ranges = [
-      [0., 0.02], [0.02, 0.04], [0.04, 0.06], [0.06, 0.08], [0.08, 0.1],
-      [0.1, 0.12], [0.12, 0.14], [0.14, 0.16], [0.16, 0.18], [0.18, 0.2]]
+      [0., 0.02], [0.02, 0.04], [0.04, 0.06], [0.06, 0.08], [0.08, 0.1]]
 
   # Compute initial guess which will be used as a basis for the spoiled
   # initial guess.
@@ -284,14 +287,9 @@ if __name__ == "__main__":
     print("##########################################\n")
 
     for angle_offset_range in angle_offset_ranges:
-
       print("\n##########################################")
       print("angle offset range: {}".format(angle_offset_range))
       print("##########################################\n")
-
-      # Convert degrees to rad.
-      angle_offset_range[0] = angle_offset_range[0] / 180. * np.math.pi
-      angle_offset_range[1] = angle_offset_range[1] / 180. * np.math.pi
 
       for translation_offset_range in translation_offset_ranges:
         print("\n##########################################")
