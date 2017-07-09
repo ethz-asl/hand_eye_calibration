@@ -75,10 +75,6 @@ def collect_data_from_csv(csv_file_names, get_header=True):
     initial_guess_translation = np.array(
         ast.literal_eval(initial_guess_string))
     initial_guess_translation_norm = np.linalg.norm(initial_guess_translation)
-    # print(row[21])
-    # print(initial_guess_string)
-    # print(initial_guess_translation_norm)
-    # assert False
     initial_guess_time = row[22]
     dataset = row[23]
 
