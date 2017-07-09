@@ -4,6 +4,7 @@ from matplotlib.font_manager import FontProperties
 import matplotlib
 
 import argparse
+import bisect
 import matplotlib.patches as mpatches
 import numpy as np
 
@@ -94,6 +95,74 @@ def generate_time_plot(methods, datasets, runtimes_per_method, colors):
   plt.show()
 
 
+def generate_optimization_circle_error_plot(
+        min_max_step_time_spoil, min_max_step_translation_spoil,
+        min_max_step_angle_spoil, data):
+  [loop_errors_position_m, loop_errors_orientation_deg,
+   spoiled_initial_guess_angle_offsets,
+   spoiled_initial_guess_translation_norm_offsets,
+   spoiled_initial_guess_time_offsets] = data
+
+  assert len(loop_errors_position_m) == len(loop_errors_orientation_deg)
+
+  times = np.arange(min_max_step_time_spoil['start'],
+                    min_max_step_time_spoil['end'] +
+                    min_max_step_time_spoil['step'],
+                    min_max_step_time_spoil['step'])
+  translation_norms = np.arange(min_max_step_translation_spoil['start'],
+                                min_max_step_translation_spoil['end'] +
+                                min_max_step_translation_spoil['step'],
+                                min_max_step_translation_spoil['step'])
+  angles = np.arange(min_max_step_angle_spoil['start'],
+                     min_max_step_angle_spoil['end'] +
+                     min_max_step_angle_spoil['step'],
+                     min_max_step_angle_spoil['step'])
+
+  time_steps = len(times)
+  translation_steps = len(translation_norms)
+  angle_steps = len(angles)
+  error_matrix = np.zeros((translation_steps, angle_steps))
+  error_bins = [[[[] for i in range(angle_steps)]
+                 for j in range(translation_steps)] for k in range(time_steps)]
+
+  # Assign all circle errors to bins of times, angles and translation_norms,
+  # and calculate the mean.
+  for (time_spoil, angle_spoil, translation_spoil, loop_error_position_m,
+       loop_error_orientation_deg) in zip(
+          spoiled_initial_guess_time_offsets,
+          spoiled_initial_guess_angle_offsets,
+          spoiled_initial_guess_translation_norm_offsets,
+          loop_errors_position_m, loop_errors_orientation_deg):
+    t_idx = bisect.bisect_left(times, time_spoil)
+    a_idx = bisect.bisect_left(angles, angle_spoil)
+    trans_idx = bisect.bisect_left(
+        translation_norms, translation_spoil)
+
+    error_bins[t_idx - 1][trans_idx - 1][a_idx - 1].append(
+        loop_error_position_m)
+
+  for t_idx, t in enumerate(times[:-1]):
+    error_matrix = np.zeros((len(translation_norms), len(angles)))
+    for trans_idx, trans in enumerate(translation_norms):
+      for a_idx, a in enumerate(angles):
+        mean = np.mean(np.array(error_bins[t_idx][trans_idx][a_idx]))
+        error_matrix[trans_idx, a_idx] = mean.copy()
+    fig, ax1 = plt.subplots()
+    ax1.set_xlabel('Perturbation Angle [deg]', color='k')
+    ax1.set_ylabel('Perturbation Translation Norm [m]', color='k')
+    x_ticks = (angles * 180 / np.pi).astype('|S4')
+    y_ticks = translation_norms.astype('|S4')
+    ax1.set_xticklabels(x_ticks)
+    ax1.set_yticklabels(y_ticks)
+    spoil_time_frame = '[' + str(t) + ',' + str(times[t_idx + 1]) + ')'
+    fig.suptitle('Circle Error with initial time offset in the range of ' +
+                 spoil_time_frame, fontsize='24')
+    cax = ax1.matshow(error_matrix)
+    fig.colorbar(cax)
+
+    plt.show()
+
+
 if __name__ == '__main__':
   parser = argparse.ArgumentParser(description=__doc__)
   parser.add_argument('--csv_file_names', type=str,
@@ -129,3 +198,24 @@ if __name__ == '__main__':
         [position_rmses_per_method[dataset][method] for method in methods],
         [orientation_rmses_per_method[dataset][method] for method in methods])
   generate_time_plot(methods, datasets, runtimes_per_method, colors)
+
+  min_max_step_times = {
+      'start': 0.0,
+      'end': 1.0,
+      'step': 0.2,
+  }
+
+  min_max_step_translation = {
+      'start': 0.0,
+      'end': 0.2,
+      'step': 0.02,
+  }
+  min_max_step_angle = {
+      'start': 0.0,
+      'end': 35.0 / 180 * np.pi,
+      'step': 5.0 / 180 * np.pi,
+  }
+
+  generate_optimization_circle_error_plot(
+      min_max_step_times, min_max_step_translation, min_max_step_angle,
+      spoiled_data)
