@@ -215,12 +215,12 @@ if __name__ == '__main__':
 
   min_max_step_translation = {
       'start': 0.0,
-      'end': 0.2,
+      'end': 0.1,
       'step': 0.02,
   }
   min_max_step_angle = {
       'start': 0.0,
-      'end': 35.0 / 180 * np.pi,
+      'end': 20.0 / 180 * np.pi,
       'step': 5.0 / 180 * np.pi,
   }
 
