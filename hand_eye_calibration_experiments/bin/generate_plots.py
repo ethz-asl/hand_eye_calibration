@@ -150,9 +150,9 @@ def generate_optimization_circle_error_plot(
         loop_error_position_m)
 
   for t_idx, t in enumerate(times[:-1]):
-    error_matrix = np.zeros((len(translation_norms), len(angles)))
-    for trans_idx, trans in enumerate(translation_norms):
-      for a_idx, a in enumerate(angles):
+    error_matrix = np.zeros((len(translation_norms) - 1, len(angles) - 1))
+    for trans_idx, trans in enumerate(translation_norms[:-1]):
+      for a_idx, a in enumerate(angles[:-1]):
         mean = np.mean(np.array(error_bins[t_idx][trans_idx][a_idx]))
         error_matrix[trans_idx, a_idx] = mean.copy()
     fig, ax1 = plt.subplots()
