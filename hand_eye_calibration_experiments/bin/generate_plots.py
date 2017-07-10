@@ -133,9 +133,9 @@ def generate_optimization_circle_error_plot(
           spoiled_initial_guess_angle_offsets,
           spoiled_initial_guess_translation_norm_offsets,
           loop_errors_position_m, loop_errors_orientation_deg):
-    t_idx = bisect.bisect_left(times, time_spoil)
-    a_idx = bisect.bisect_left(angles, angle_spoil)
-    trans_idx = bisect.bisect_left(
+    t_idx = bisect.bisect_right(times, time_spoil)
+    a_idx = bisect.bisect_right(angles, angle_spoil)
+    trans_idx = bisect.bisect_right(
         translation_norms, translation_spoil)
 
     error_bins[t_idx - 1][trans_idx - 1][a_idx - 1].append(
