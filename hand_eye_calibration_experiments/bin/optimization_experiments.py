@@ -45,6 +45,7 @@ def spoil_initial_guess(time_offset_initial_guess, dq_H_E_initial_guess, angular
   # Get a random unit vector
   random_translation_offset = np.random.uniform(-1.0, 1.0, 3)
   random_translation_offset /= np.linalg.norm(random_translation_offset)
+  assert np.isclose(np.linalg.norm(random_translation_offset), 1., atol=1e-8)
 
   # Scale unit vector to a random length between 0 and max_translation_offset.
   random_translation_length = np.random.uniform(
@@ -349,6 +350,14 @@ if __name__ == "__main__":
                    "translation offset: {}").format(
                 random_time_offset_offset, random_angle_offset, random_translation_offset))
 
+            # Save offsets from initial guess.
+            result_entry.spoiled_initial_guess_angle_offset.append(
+                random_angle_offset)
+            result_entry.spoiled_initial_guess_translation_offset.append(
+                random_translation_offset)
+            result_entry.spoiled_initial_guess_time_offset.append(
+                random_time_offset_offset)
+
             # Write calibration to optimization input file format.
             initial_guess_calibration_file = ("{}/optimization/{}_pose_pair_{}_it_{}_" +
                                               "dt_{}_ds_{}_da_{}_init_guess.json"
@@ -443,13 +452,6 @@ if __name__ == "__main__":
             else:
               results_poses_H_E.append(None)
             results_dq_H_E.append(dq_H_E_optimized)
-
-            result_entry.spoiled_initial_guess_angle_offset.append(
-                random_angle_offset)
-            result_entry.spoiled_initial_guess_translation_offset.append(
-                random_translation_offset)
-            result_entry.spoiled_initial_guess_time_offset.append(
-                random_time_offset_offset)
 
             result_entry.optimization_success.append(optimization_success)
             result_entry.rmse.append(rmse_optimized)
