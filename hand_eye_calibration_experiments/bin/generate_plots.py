@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 from matplotlib import pylab as plt
 from matplotlib.font_manager import FontProperties
+from mpl_toolkits.axes_grid1 import make_axes_locatable
 import matplotlib
 
 import argparse
@@ -121,9 +122,15 @@ def generate_optimization_circle_error_plot(
   time_steps = len(times)
   translation_steps = len(translation_norms)
   angle_steps = len(angles)
+
   error_matrix = np.zeros((translation_steps, angle_steps))
-  error_bins = [[[[] for i in range(angle_steps)]
-                 for j in range(translation_steps)] for k in range(time_steps)]
+  error_bins_translations = [[[[] for i in range(angle_steps)]
+                              for j in range(translation_steps)
+                              ] for k in range(time_steps)]
+
+  error_bins_angles = [[[[] for i in range(angle_steps)]
+                        for j in range(translation_steps)
+                        ] for k in range(time_steps)]
 
   # Assign all circle errors to bins of times, angles and translation_norms,
   # and calculate the mean.
@@ -146,28 +153,67 @@ def generate_optimization_circle_error_plot(
                                                 str(translation_spoil) +
                                                 str(translation_norms))
 
-    error_bins[t_idx - 1][trans_idx - 1][a_idx - 1].append(
+    error_bins_translations[t_idx - 1][trans_idx - 1][a_idx - 1].append(
         loop_error_position_m)
+    error_bins_angles[t_idx - 1][trans_idx - 1][a_idx - 1].append(
+        loop_error_orientation_deg)
 
   for t_idx, t in enumerate(times[:-1]):
-    error_matrix = np.zeros((len(translation_norms) - 1, len(angles) - 1))
+    error_matrix_translations = np.zeros(
+        (len(translation_norms) - 1, len(angles) - 1))
+    error_matrix_angles = np.zeros(
+        (len(translation_norms) - 1, len(angles) - 1))
     for trans_idx, trans in enumerate(translation_norms[:-1]):
       for a_idx, a in enumerate(angles[:-1]):
-        mean = np.mean(np.array(error_bins[t_idx][trans_idx][a_idx]))
-        error_matrix[trans_idx, a_idx] = mean.copy()
-    fig, ax1 = plt.subplots()
+        mean_translation = np.mean(
+            np.array(error_bins_translations[t_idx][trans_idx][a_idx]))
+        error_matrix_translations[trans_idx, a_idx] = mean_translation.copy()
+        mean_angles = np.mean(
+            np.array(error_bins_angles[t_idx][trans_idx][a_idx]))
+        error_matrix_angles[trans_idx, a_idx] = mean_angles.copy()
+    fig, axes = plt.subplots(1, 2)
+    (ax1, ax2) = axes
+
+    x_tick_labels = (
+        '[' + np.char.array(angles[:-1] * 180 / np.pi) + ',' +
+        np.char.array(angles[1:] * 180 / np.pi) + ')')
+    y_tick_labels = (
+        '[' + np.char.array(translation_norms[:-1]) + ',' +
+        np.char.array(translation_norms[1:]) + ')')
+    x_ticks = range(angle_steps - 1)
+    y_ticks = range(translation_steps - 1)
+    plt.setp(axes, xticks=x_ticks, xticklabels=x_tick_labels,
+             yticks=y_ticks, yticklabels=y_tick_labels)
+    spoil_time_frame = '[' + str(t) + ',' + str(times[t_idx + 1]) + ')'
+
     ax1.set_xlabel('Perturbation Angle [deg]', color='k')
     ax1.set_ylabel('Perturbation Translation Norm [m]', color='k')
-    x_ticks = (angles * 180 / np.pi).astype('|S4')
-    y_ticks = translation_norms.astype('|S4')
-    ax1.set_xticklabels(x_ticks)
-    ax1.set_yticklabels(y_ticks)
-    spoil_time_frame = '[' + str(t) + ',' + str(times[t_idx + 1]) + ')'
-    fig.suptitle('Circle Error with initial time offset in the range of ' +
-                 spoil_time_frame, fontsize='24')
-    cax = ax1.matshow(error_matrix)
-    fig.colorbar(cax)
+    ax1.set_title(
+        'Translational error [m] $t_{spoil} \in ' + spoil_time_frame + '$')
+    cax1 = ax1.imshow(error_matrix_translations, interpolation='nearest')
+    divider = make_axes_locatable(ax1)
+    cax = divider.append_axes("right", size="5%", pad=0.1)
+    fig.colorbar(cax1, ax=ax1, cax=cax)
+    ax1.spines['left'].set_position(('outward', 10))
+    ax1.spines['bottom'].set_position(('outward', 10))
+    ax1.spines['right'].set_visible(False)
+    ax1.spines['top'].set_visible(False)
+    ax1.yaxis.set_ticks_position('left')
+    ax1.xaxis.set_ticks_position('bottom')
 
+    ax2.set_xlabel('Perturbation Angle [deg]', color='k')
+    ax2.set_ylabel('Perturbation Translation [m]', color='k')
+    ax2.set_title(
+        'Angular error [deg] $t_{spoil} \in ' + spoil_time_frame + '$')
+    cax2 = ax2.imshow(error_matrix_angles, interpolation='nearest')
+    divider = make_axes_locatable(ax2)
+    cax = divider.append_axes("right", size="5%", pad=0.1)
+    fig.colorbar(cax2, ax=ax2, cax=cax)
+    ax2.spines['left'].set_visible(False)
+    ax2.spines['bottom'].set_position(('outward', 10))
+    ax2.spines['right'].set_visible(False)
+    ax2.spines['top'].set_visible(False)
+    ax2.yaxis.set_visible(False)
     plt.show()
 
 
