@@ -137,6 +137,14 @@ def generate_optimization_circle_error_plot(
     a_idx = bisect.bisect_right(angles, angle_spoil)
     trans_idx = bisect.bisect_right(
         translation_norms, translation_spoil)
+    assert t_idx > 0
+    assert a_idx > 0, ("angle" + str(angle_spoil))
+    assert trans_idx > 0
+    assert t_idx < len(times), ("time" + str(time_spoil) + str(times))
+    assert a_idx < len(angles), ("angle" + str(angle_spoil) + str(angles))
+    assert trans_idx < len(translation_norms), ("trans" +
+                                                str(translation_spoil) +
+                                                str(translation_norms))
 
     error_bins[t_idx - 1][trans_idx - 1][a_idx - 1].append(
         loop_error_position_m)
