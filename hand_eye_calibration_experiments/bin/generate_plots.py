@@ -166,17 +166,17 @@ def generate_optimization_circle_error_plot(
           plot_spoils,
           loop_errors_position_m, loop_errors_orientation_deg):
 
-    x_idx = bisect.bisect_right(loop_x, x_spoil)
-    y_idx = bisect.bisect_right(loop_y, y_spoil)
-    plot_idx = bisect.bisect_right(loop_plot, plot_spoil)
+    x_idx = bisect.bisect_right(loop_x, np.linalg.norm(x_spoil))
+    y_idx = bisect.bisect_right(loop_y, np.linalg.norm(y_spoil))
+    plot_idx = bisect.bisect_right(loop_plot, np.linalg.norm(plot_spoil))
 
     assert x_idx > 0
-    assert y_idx > 0, ("angle" + str(angle_spoil))
+    assert y_idx > 0, ("y " + str(y_spoil))
     assert plot_idx > 0
-    assert x_idx < x_steps, ("x " + str(time_spoil) + str(times))
-    assert y_idx < y_steps, ("y " + str(angle_spoil) + str(angles))
-    assert plot_idx < plot_steps, ("plot " + str(translation_spoil) +
-                                   str(translation_norms))
+    assert x_idx < x_steps, ("x " + str(x_spoil) + str(loop_x))
+    assert y_idx < y_steps, ("y " + str(y_spoil) + str(loop_y))
+    assert plot_idx < plot_steps, ("plot " + str(plot_spoil) +
+                                   str(loop_plot))
     error_bins_translations[plot_idx - 1][y_idx - 1][x_idx - 1].append(
         loop_error_position_m)
     error_bins_angles[plot_idx - 1][y_idx - 1][x_idx - 1].append(
