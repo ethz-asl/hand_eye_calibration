@@ -91,33 +91,33 @@ class ResultEntry:
             "spoiled_initial_guess_time_offset"
             "\n")
 
-  def write_pose_pair_to_csv_line(self, num_pose_pairs):
+  def write_pose_pair_to_csv_line(self, pose_pair_idx):
 
-    singular_values = self.singular_values[num_pose_pairs]
+    singular_values = self.singular_values[pose_pair_idx]
 
     return "{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{}\n".format(
         self.algorithm_name,
-        num_pose_pairs,
+        pose_pair_idx,
         self.iteration_num,
         self.prefiltering_enabled,
-        self.dataset_names[num_pose_pairs][0],
-        self.dataset_names[num_pose_pairs][1],
-        self.success[num_pose_pairs],
-        self.rmse[num_pose_pairs][0],
-        self.rmse[num_pose_pairs][1],
-        self.num_inliers[num_pose_pairs],
-        self.num_initial_poses[num_pose_pairs],
-        self.num_poses_kept[num_pose_pairs],
-        self.runtimes[num_pose_pairs],
+        self.dataset_names[pose_pair_idx][0],
+        self.dataset_names[pose_pair_idx][1],
+        self.success[pose_pair_idx],
+        self.rmse[pose_pair_idx][0],
+        self.rmse[pose_pair_idx][1],
+        self.num_inliers[pose_pair_idx],
+        self.num_initial_poses[pose_pair_idx],
+        self.num_poses_kept[pose_pair_idx],
+        self.runtimes[pose_pair_idx],
         self.loop_error_position,
         self.loop_error_orientation,
         ("" if singular_values is None else np.array_str(
             singular_values, max_line_width=1000000)),
-        self.bad_singular_value[num_pose_pairs],
+        self.bad_singular_value[pose_pair_idx],
         self.optimization_enabled,
-        self.optimization_success[num_pose_pairs],
-        self.optimization_runtime[num_pose_pairs],
-        self.spoiled_initial_guess_angle_offset[num_pose_pairs],
-        (None if self.spoiled_initial_guess_translation_offset[num_pose_pairs] is None else np.array_str(
-            self.spoiled_initial_guess_translation_offset[num_pose_pairs], max_line_width=1000000)),
-        self.spoiled_initial_guess_time_offset[num_pose_pairs])
+        self.optimization_success[pose_pair_idx],
+        self.optimization_runtime[pose_pair_idx],
+        self.spoiled_initial_guess_angle_offset[pose_pair_idx],
+        (None if self.spoiled_initial_guess_translation_offset[pose_pair_idx] is None else np.array_str(
+            self.spoiled_initial_guess_translation_offset[pose_pair_idx], max_line_width=1000000)),
+        self.spoiled_initial_guess_time_offset[pose_pair_idx])

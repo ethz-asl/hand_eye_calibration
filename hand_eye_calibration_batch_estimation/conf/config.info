@@ -1,6 +1,6 @@
 model {
-	Gravity { 
-		used false 
+	Gravity {
+		used false
 	}
 
 	pose1 {
@@ -9,10 +9,10 @@ model {
 
 		covPosition { sigma "0.01" }
 		covOrientation { sigma "0.01" }
-		
+
 		absoluteMeasurements false
 
-		rotation { 
+		rotation {
 			used false
 			yaw 0
 			pitch 0
@@ -28,12 +28,12 @@ model {
 	pose2 {
 		frame body
 		targetFrame world
-		
+
 		covPosition { sigma "0.01" }
 		covOrientation { sigma "0.01" }
 
 		absoluteMeasurements false
-		
+
 		delay
 		{
 			relativeBounds true
@@ -47,7 +47,7 @@ model {
 		referenceFrame world
 		initWithPoseMeasurements true
 		McSensor pose1
-		splines { 
+		splines {
 			knotsPerSecond 10
 			rotSplineOrder 4
 			rotFittingLambda 0.0000001
@@ -63,7 +63,7 @@ calibrator {
 	timeBaseSensor pose1
 	estimator {
 		optimizer {
-			maxIterations 100
+			maxIterations 20
 		}
 	}
 }
