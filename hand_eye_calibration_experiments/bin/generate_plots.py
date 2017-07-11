@@ -132,7 +132,7 @@ def generate_optimization_circle_error_plot(
     plot_spoils = spoiled_initial_guess_translation_norm_offsets
     perturbation_x_label = "Angle [deg]"
     perturbation_y_label = "Time [s]"
-    perturbation_loop_label = "Translational error [m]"
+    perturbation_loop_label = "$|x_{spoil}|"
 
   elif plot_order == "time_translation_angle":
     loop_x = angles
@@ -143,7 +143,7 @@ def generate_optimization_circle_error_plot(
     plot_spoils = spoiled_initial_guess_time_offsets
     perturbation_x_label = "Angle [deg]"
     perturbation_y_label = "Translation [m]"
-    perturbation_loop_label = "Translational error [m]"
+    perturbation_loop_label = "$t_{spoil}"
 
   x_steps = len(loop_x)
   y_steps = len(loop_y)
@@ -215,8 +215,8 @@ def generate_optimization_circle_error_plot(
 
     ax1.set_xlabel('Perturbation ' + perturbation_x_label, color='k')
     ax1.set_ylabel('Perturbation ' + perturbation_y_label, color='k')
-    ax1.set_title(perturbation_loop_label + ' $t_{spoil} \in ' +
-                  spoil_plot_frame + '$')
+    ax1.set_title('Translational error [m] ' + perturbation_loop_label +
+                  ' \in ' + spoil_plot_frame + '$')
     cax1 = ax1.imshow(error_matrix_translations, interpolation='nearest')
     divider = make_axes_locatable(ax1)
     cax = divider.append_axes("right", size="5%", pad=0.1)
@@ -229,8 +229,8 @@ def generate_optimization_circle_error_plot(
     ax1.xaxis.set_ticks_position('bottom')
 
     ax2.set_xlabel('Perturbation ' + perturbation_x_label, color='k')
-    ax2.set_title(
-        'Angular error [deg] $t_{spoil} \in ' + spoil_plot_frame + '$')
+    ax2.set_title('Angular error [deg] ' + perturbation_loop_label + ' \in ' +
+                  spoil_plot_frame + '$')
     cax2 = ax2.imshow(error_matrix_angles, interpolation='nearest')
     divider = make_axes_locatable(ax2)
     cax = divider.append_axes("right", size="5%", pad=0.1)
