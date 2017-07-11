@@ -455,17 +455,13 @@ if __name__ == "__main__":
 
   translation_offset_ranges = [[0., 0.1], [0.1, 0.2]]
 
-  # time_offset_ranges = [[0., 0.03], [0.03, 0.06]]
-  # angle_offset_ranges = [[0., 15.], [15., 30.]]
-  # translation_offset_ranges = [[0., 0.2], [0.2, 0.4]]
-
   # Convert degrees to rad.
   for angle_offset_range in angle_offset_ranges:
     angle_offset_range[0] = angle_offset_range[0] / 180. * np.math.pi
     angle_offset_range[1] = angle_offset_range[1] / 180. * np.math.pi
 
-  Compute initial guess which will be used as a basis for the spoiled
-  initial guess.
+  # Compute initial guess which will be used as a basis for the spoiled
+  # initial guess.
   (set_of_dq_H_E_initial_guess,
    set_of_time_offset_initial_guess,
    result_entry_template) = compute_initial_guess_for_all_pairs(set_of_pose_pairs,
@@ -474,30 +470,6 @@ if __name__ == "__main__":
                                                                 filtering_config,
                                                                 optimization_config,
                                                                 args.visualize)
-
-  # Initialize the result entry.
-  result_entry_template = ResultEntry()
-  result_entry_template.init_from_configs(algorithm_name, 0, filtering_config,
-                                          hand_eye_config, optimization_config)
-
-  for (pose_file_B_H, pose_file_W_E) in set_of_pose_pairs:
-    result_entry_template.success.append(True)
-    result_entry_template.num_initial_poses.append(-1)
-    result_entry_template.num_poses_kept.append(-1)
-    result_entry_template.runtimes.append(-1.)
-    result_entry_template.singular_values.append(None)
-    result_entry_template.bad_singular_value.append(False)
-    result_entry_template.dataset_names.append((pose_file_B_H, pose_file_W_E))
-
-  # TANGO_exCALIBur_2
-  # set_of_dq_H_E_initial_guess = [
-  #     DualQuaternion.from_vector([-0.01823309, 0.88031286, 0.39259637,
-  #                                 0.2656782, -0.40013712, -0.24683336, 0.54453068, -0.01425004]),
-  #     DualQuaternion.from_vector([0.00835731, 0.70357887, 0.31232458,
-  #                                 0.63824783, -0.05274857, -0.08993655, 0.21824245, -0.0069631]),
-  #     DualQuaternion.from_vector([0.01417695, -0.38374657, -0.14814457, 0.91136753, 0.47661869, 0.01550708, -0.06057835, -0.01073175])]
-  # set_of_time_offset_initial_guess = [
-  #     126.833492975, 234.570321373, 107.738260856]
 
   # Loop over experiment values
   number_of_experiment_exec = (len(time_offset_ranges) * len(angle_offset_ranges) *
@@ -529,17 +501,13 @@ if __name__ == "__main__":
   assert experiment_progress_idx == number_of_experiment_exec
   assert len(input_data) == number_of_experiment_exec
 
-  thread_pool = Pool(8)
+  thread_pool = Pool(min(8, number_of_experiment_exec))
   func_wrapped = partial(Forwarder, func=run_optimization_experiment)
   output_data = thread_pool.map(func_wrapped, input_data)
   assert len(output_data) == number_of_experiment_exec
   thread_pool.close()
 
   print("\n\nFINISHED ALL EXPERIMENTS!\n\n")
-
-  # (all_result_entries[experiment_progress_idx], _, _) = run_optimization_experiment(
-  # time_offset_range, angle_offset_range, translation_offset_range,
-  # iteration, result_entry_template)
 
   output_file = open(result_file_path, 'a')
   for result_idx in range(0, number_of_experiment_exec):
@@ -549,3 +517,5 @@ if __name__ == "__main__":
     for pair_idx in range(0, num_pose_pairs):
       output_file.write(
           output_data_entry[0].write_pose_pair_to_csv_line(pair_idx))
+
+  print("\n\nFINISHED WRITING RESULTS!\n\n")
