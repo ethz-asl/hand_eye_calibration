@@ -119,77 +119,89 @@ def generate_optimization_circle_error_plot(
                      min_max_step_angle_spoil['step'],
                      min_max_step_angle_spoil['step'])
 
-  time_steps = len(times)
-  translation_steps = len(translation_norms)
-  angle_steps = len(angles)
+  # Decide here what to plot against what.
+  loop_x = angles
+  loop_y = times
+  loop_plot = translation_norms
+  x_spoils = spoiled_initial_guess_angle_offsets
+  y_spoils = spoiled_initial_guess_time_offsets
+  plot_spoils = spoiled_initial_guess_translation_norm_offsets
+  perturbation_x_label = "Angle [deg]"
+  perturbation_y_label = "Time [s]"
+  perturbation_loop_label = "Translational error [m]"
 
-  error_matrix = np.zeros((translation_steps, angle_steps))
-  error_bins_translations = [[[[] for i in range(angle_steps)]
-                              for j in range(translation_steps)
-                              ] for k in range(time_steps)]
+  x_steps = len(loop_x)
+  y_steps = len(loop_y)
+  plot_steps = len(loop_plot)
 
-  error_bins_angles = [[[[] for i in range(angle_steps)]
-                        for j in range(translation_steps)
-                        ] for k in range(time_steps)]
+  error_bins_translations = [[[[] for i in range(x_steps)]
+                              for j in range(y_steps)
+                              ] for k in range(plot_steps)]
+
+  error_bins_angles = [[[[] for i in range(x_steps)]
+                        for j in range(y_steps)
+                        ] for k in range(plot_steps)]
 
   # Assign all circle errors to bins of times, angles and translation_norms,
   # and calculate the mean.
-  for (time_spoil, angle_spoil, translation_spoil, loop_error_position_m,
+  for (x_spoil, y_spoil, plot_spoil, loop_error_position_m,
        loop_error_orientation_deg) in zip(
-          spoiled_initial_guess_time_offsets,
-          spoiled_initial_guess_angle_offsets,
-          spoiled_initial_guess_translation_norm_offsets,
+          x_spoils,
+          y_spoils,
+          plot_spoils,
           loop_errors_position_m, loop_errors_orientation_deg):
-    t_idx = bisect.bisect_right(times, time_spoil)
-    a_idx = bisect.bisect_right(angles, angle_spoil)
-    trans_idx = bisect.bisect_right(
-        translation_norms, translation_spoil)
-    assert t_idx > 0
-    assert a_idx > 0, ("angle" + str(angle_spoil))
-    assert trans_idx > 0
-    assert t_idx < len(times), ("time" + str(time_spoil) + str(times))
-    assert a_idx < len(angles), ("angle" + str(angle_spoil) + str(angles))
-    assert trans_idx < len(translation_norms), ("trans" +
-                                                str(translation_spoil) +
-                                                str(translation_norms))
 
-    error_bins_translations[t_idx - 1][trans_idx - 1][a_idx - 1].append(
+    x_idx = bisect.bisect_right(loop_x, x_spoil)
+    y_idx = bisect.bisect_right(loop_y, y_spoil)
+    plot_idx = bisect.bisect_right(loop_plot, plot_spoil)
+
+    assert x_idx > 0
+    assert y_idx > 0, ("angle" + str(angle_spoil))
+    assert plot_idx > 0
+    assert x_idx < x_steps, ("x " + str(time_spoil) + str(times))
+    assert y_idx < y_steps, ("y " + str(angle_spoil) + str(angles))
+    assert plot_idx < plot_steps, ("plot " + str(translation_spoil) +
+                                   str(translation_norms))
+    error_bins_translations[plot_idx - 1][y_idx - 1][x_idx - 1].append(
         loop_error_position_m)
-    error_bins_angles[t_idx - 1][trans_idx - 1][a_idx - 1].append(
+    error_bins_angles[plot_idx - 1][y_idx - 1][x_idx - 1].append(
         loop_error_orientation_deg)
 
-  for t_idx, t in enumerate(times[:-1]):
+  for plot_idx, plot_value in enumerate(loop_plot[:-1]):
     error_matrix_translations = np.zeros(
-        (len(translation_norms) - 1, len(angles) - 1))
+        (y_steps - 1, x_steps - 1))
     error_matrix_angles = np.zeros(
-        (len(translation_norms) - 1, len(angles) - 1))
-    for trans_idx, trans in enumerate(translation_norms[:-1]):
-      for a_idx, a in enumerate(angles[:-1]):
+        (y_steps - 1, x_steps - 1))
+    for y_idx, y in enumerate(loop_y[:-1]):
+      for x_idx, x in enumerate(loop_x[:-1]):
+        # mean_translation = np.max(
         mean_translation = np.mean(
-            np.array(error_bins_translations[t_idx][trans_idx][a_idx]))
-        error_matrix_translations[trans_idx, a_idx] = mean_translation.copy()
+            np.array(error_bins_translations[plot_idx][y_idx][x_idx]))
+        error_matrix_translations[y_idx, x_idx] = mean_translation.copy()
+        # mean_angles = np.max(
         mean_angles = np.mean(
-            np.array(error_bins_angles[t_idx][trans_idx][a_idx]))
-        error_matrix_angles[trans_idx, a_idx] = mean_angles.copy()
+            np.array(error_bins_angles[plot_idx][y_idx][x_idx]))
+        error_matrix_angles[y_idx, x_idx] = mean_angles.copy()
     fig, axes = plt.subplots(1, 2)
     (ax1, ax2) = axes
 
     x_tick_labels = (
-        '[' + np.char.array(angles[:-1] * 180 / np.pi) + ',' +
-        np.char.array(angles[1:] * 180 / np.pi) + ')')
+        '[' + np.char.array(loop_x[:-1] * 180 / np.pi) + ',' +
+        np.char.array(loop_x[1:] * 180 / np.pi) + ')')
     y_tick_labels = (
-        '[' + np.char.array(translation_norms[:-1]) + ',' +
-        np.char.array(translation_norms[1:]) + ')')
-    x_ticks = range(angle_steps - 1)
-    y_ticks = range(translation_steps - 1)
+        '[' + np.char.array(loop_y[:-1]) + ',' +
+        np.char.array(loop_y[1:]) + ')')
+    x_ticks = range(x_steps - 1)
+    y_ticks = range(y_steps - 1)
     plt.setp(axes, xticks=x_ticks, xticklabels=x_tick_labels,
              yticks=y_ticks, yticklabels=y_tick_labels)
-    spoil_time_frame = '[' + str(t) + ',' + str(times[t_idx + 1]) + ')'
+    spoil_plot_frame = '[' + \
+        str(plot_value) + ',' + str(loop_plot[plot_idx + 1]) + ')'
 
-    ax1.set_xlabel('Perturbation Angle [deg]', color='k')
-    ax1.set_ylabel('Perturbation Translation Norm [m]', color='k')
-    ax1.set_title(
-        'Translational error [m] $t_{spoil} \in ' + spoil_time_frame + '$')
+    ax1.set_xlabel('Perturbation ' + perturbation_x_label, color='k')
+    ax1.set_ylabel('Perturbation ' + perturbation_y_label, color='k')
+    ax1.set_title(perturbation_loop_label + ' $t_{spoil} \in ' +
+                  spoil_plot_frame + '$')
     cax1 = ax1.imshow(error_matrix_translations, interpolation='nearest')
     divider = make_axes_locatable(ax1)
     cax = divider.append_axes("right", size="5%", pad=0.1)
@@ -201,10 +213,9 @@ def generate_optimization_circle_error_plot(
     ax1.yaxis.set_ticks_position('left')
     ax1.xaxis.set_ticks_position('bottom')
 
-    ax2.set_xlabel('Perturbation Angle [deg]', color='k')
-    ax2.set_ylabel('Perturbation Translation [m]', color='k')
+    ax2.set_xlabel('Perturbation ' + perturbation_x_label, color='k')
     ax2.set_title(
-        'Angular error [deg] $t_{spoil} \in ' + spoil_time_frame + '$')
+        'Angular error [deg] $t_{spoil} \in ' + spoil_plot_frame + '$')
     cax2 = ax2.imshow(error_matrix_angles, interpolation='nearest')
     divider = make_axes_locatable(ax2)
     cax = divider.append_axes("right", size="5%", pad=0.1)
