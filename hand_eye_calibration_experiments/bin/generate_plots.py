@@ -120,15 +120,30 @@ def generate_optimization_circle_error_plot(
                      min_max_step_angle_spoil['step'])
 
   # Decide here what to plot against what.
-  loop_x = angles
-  loop_y = times
-  loop_plot = translation_norms
-  x_spoils = spoiled_initial_guess_angle_offsets
-  y_spoils = spoiled_initial_guess_time_offsets
-  plot_spoils = spoiled_initial_guess_translation_norm_offsets
-  perturbation_x_label = "Angle [deg]"
-  perturbation_y_label = "Time [s]"
-  perturbation_loop_label = "Translational error [m]"
+  plot_order = "translation_time_angle"
+  # plot_order = "time_translation_angle"
+
+  if plot_order == "translation_time_angle":
+    loop_x = angles
+    loop_y = times
+    loop_plot = translation_norms
+    x_spoils = spoiled_initial_guess_angle_offsets
+    y_spoils = spoiled_initial_guess_time_offsets
+    plot_spoils = spoiled_initial_guess_translation_norm_offsets
+    perturbation_x_label = "Angle [deg]"
+    perturbation_y_label = "Time [s]"
+    perturbation_loop_label = "Translational error [m]"
+
+  elif plot_order == "time_translation_angle":
+    loop_x = angles
+    loop_y = translation_norms
+    loop_plot = times
+    x_spoils = spoiled_initial_guess_angle_offsets
+    y_spoils = spoiled_initial_guess_translation_norm_offsets
+    plot_spoils = spoiled_initial_guess_time_offsets
+    perturbation_x_label = "Angle [deg]"
+    perturbation_y_label = "Translation [m]"
+    perturbation_loop_label = "Translational error [m]"
 
   x_steps = len(loop_x)
   y_steps = len(loop_y)
