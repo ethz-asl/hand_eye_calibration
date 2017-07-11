@@ -208,7 +208,7 @@ def run_optimization_experiment(time_offset_range, angle_offset_range,
                                 translation_offset_range, iteration_idx,
                                 result_entry_template, experiment_progress):
   result_entry = copy.deepcopy(result_entry_template)
-  result_entry.iteration_num = iteration
+  result_entry.iteration_num = iteration_idx
 
   # Init result variables.
   results_dq_H_E = []
