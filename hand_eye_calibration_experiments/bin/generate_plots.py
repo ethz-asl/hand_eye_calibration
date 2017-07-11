@@ -281,20 +281,37 @@ if __name__ == '__main__':
 
   min_max_step_times = {
       'start': 0.0,
-      'end': 1.0,
-      'step': 0.2,
+      'end': 0.24,
+      'step': 0.03,
   }
 
   min_max_step_translation = {
       'start': 0.0,
-      'end': 0.1,
-      'step': 0.02,
+      'end': 0.2,
+      'step': 0.1,
   }
   min_max_step_angle = {
       'start': 0.0,
-      'end': 20.0 / 180 * np.pi,
-      'step': 5.0 / 180 * np.pi,
+      'end': 90.0 / 180 * np.pi,
+      'step': 15.0 / 180 * np.pi,
   }
+
+  # min_max_step_times = {
+  #     'start': -0.0499999,
+  #     'end': 0.05,
+  #     'step': 0.05,
+  # }
+  #
+  # min_max_step_translation = {
+  #     'start': 0.0,
+  #     'end': 0.1,
+  #     'step': 0.02,
+  # }
+  # min_max_step_angle = {
+  #     'start': 0.0,
+  #     'end': 25.0 / 180 * np.pi,
+  #     'step': 5.0 / 180 * np.pi,
+  # }
 
   generate_optimization_circle_error_plot(
       min_max_step_times, min_max_step_translation, min_max_step_angle,
