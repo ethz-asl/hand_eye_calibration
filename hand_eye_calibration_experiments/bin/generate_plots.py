@@ -1,11 +1,16 @@
 #!/usr/bin/env python
 from matplotlib import pylab as plt
 from matplotlib.font_manager import FontProperties
+from mpl_toolkits.axes_grid1 import make_axes_locatable
 import matplotlib
 
 import argparse
+import bisect
 import matplotlib.patches as mpatches
 import numpy as np
+
+from hand_eye_calibration_experiments.experiment_plotting_tools import (
+    collect_data_from_csv)
 
 
 font = FontProperties()
@@ -91,6 +96,153 @@ def generate_time_plot(methods, datasets, runtimes_per_method, colors):
   plt.show()
 
 
+def generate_optimization_circle_error_plot(
+        min_max_step_time_spoil, min_max_step_translation_spoil,
+        min_max_step_angle_spoil, data):
+  [loop_errors_position_m, loop_errors_orientation_deg,
+   spoiled_initial_guess_angle_offsets,
+   spoiled_initial_guess_translation_norm_offsets,
+   spoiled_initial_guess_time_offsets] = data
+
+  assert len(loop_errors_position_m) == len(loop_errors_orientation_deg)
+
+  times = np.arange(min_max_step_time_spoil['start'],
+                    min_max_step_time_spoil['end'] +
+                    min_max_step_time_spoil['step'],
+                    min_max_step_time_spoil['step'])
+  translation_norms = np.arange(min_max_step_translation_spoil['start'],
+                                min_max_step_translation_spoil['end'] +
+                                min_max_step_translation_spoil['step'],
+                                min_max_step_translation_spoil['step'])
+  angles = np.arange(min_max_step_angle_spoil['start'],
+                     min_max_step_angle_spoil['end'] +
+                     min_max_step_angle_spoil['step'],
+                     min_max_step_angle_spoil['step'])
+
+  # Decide here what to plot against what.
+  plot_order = "translation_time_angle"
+  # plot_order = "time_translation_angle"
+
+  if plot_order == "translation_time_angle":
+    loop_x = angles
+    loop_y = times
+    loop_plot = translation_norms
+    x_spoils = spoiled_initial_guess_angle_offsets
+    y_spoils = spoiled_initial_guess_time_offsets
+    plot_spoils = spoiled_initial_guess_translation_norm_offsets
+    perturbation_x_label = "Angle [deg]"
+    perturbation_y_label = "Time [s]"
+    perturbation_loop_label = "$|x_{spoil}|"
+
+  elif plot_order == "time_translation_angle":
+    loop_x = angles
+    loop_y = translation_norms
+    loop_plot = times
+    x_spoils = spoiled_initial_guess_angle_offsets
+    y_spoils = spoiled_initial_guess_translation_norm_offsets
+    plot_spoils = spoiled_initial_guess_time_offsets
+    perturbation_x_label = "Angle [deg]"
+    perturbation_y_label = "Translation [m]"
+    perturbation_loop_label = "$t_{spoil}"
+
+  x_steps = len(loop_x)
+  y_steps = len(loop_y)
+  plot_steps = len(loop_plot)
+
+  error_bins_translations = [[[[] for i in range(x_steps)]
+                              for j in range(y_steps)
+                              ] for k in range(plot_steps)]
+
+  error_bins_angles = [[[[] for i in range(x_steps)]
+                        for j in range(y_steps)
+                        ] for k in range(plot_steps)]
+
+  # Assign all circle errors to bins of times, angles and translation_norms,
+  # and calculate the mean.
+  for (x_spoil, y_spoil, plot_spoil, loop_error_position_m,
+       loop_error_orientation_deg) in zip(
+          x_spoils,
+          y_spoils,
+          plot_spoils,
+          loop_errors_position_m, loop_errors_orientation_deg):
+
+    x_idx = bisect.bisect_right(loop_x, np.linalg.norm(x_spoil))
+    y_idx = bisect.bisect_right(loop_y, np.linalg.norm(y_spoil))
+    plot_idx = bisect.bisect_right(loop_plot, np.linalg.norm(plot_spoil))
+
+    assert x_idx > 0
+    assert y_idx > 0, ("y " + str(y_spoil))
+    assert plot_idx > 0
+    assert x_idx < x_steps, ("x " + str(x_spoil) + str(loop_x))
+    assert y_idx < y_steps, ("y " + str(y_spoil) + str(loop_y))
+    assert plot_idx < plot_steps, ("plot " + str(plot_spoil) +
+                                   str(loop_plot))
+    error_bins_translations[plot_idx - 1][y_idx - 1][x_idx - 1].append(
+        loop_error_position_m)
+    error_bins_angles[plot_idx - 1][y_idx - 1][x_idx - 1].append(
+        loop_error_orientation_deg)
+
+  for plot_idx, plot_value in enumerate(loop_plot[:-1]):
+    error_matrix_translations = np.zeros(
+        (y_steps - 1, x_steps - 1))
+    error_matrix_angles = np.zeros(
+        (y_steps - 1, x_steps - 1))
+    for y_idx, y in enumerate(loop_y[:-1]):
+      for x_idx, x in enumerate(loop_x[:-1]):
+        # mean_translation = np.max(
+        mean_translation = np.mean(
+            np.array(error_bins_translations[plot_idx][y_idx][x_idx]))
+        error_matrix_translations[y_idx, x_idx] = mean_translation.copy()
+        # mean_angles = np.max(
+        mean_angles = np.mean(
+            np.array(error_bins_angles[plot_idx][y_idx][x_idx]))
+        error_matrix_angles[y_idx, x_idx] = mean_angles.copy()
+    fig, axes = plt.subplots(1, 2)
+    (ax1, ax2) = axes
+
+    x_tick_labels = (
+        '[' + np.char.array(loop_x[:-1] * 180 / np.pi) + ',' +
+        np.char.array(loop_x[1:] * 180 / np.pi) + ')')
+    y_tick_labels = (
+        '[' + np.char.array(loop_y[:-1]) + ',' +
+        np.char.array(loop_y[1:]) + ')')
+    x_ticks = range(x_steps - 1)
+    y_ticks = range(y_steps - 1)
+    plt.setp(axes, xticks=x_ticks, xticklabels=x_tick_labels,
+             yticks=y_ticks, yticklabels=y_tick_labels)
+    spoil_plot_frame = '[' + \
+        str(plot_value) + ',' + str(loop_plot[plot_idx + 1]) + ')'
+
+    ax1.set_xlabel('Perturbation ' + perturbation_x_label, color='k')
+    ax1.set_ylabel('Perturbation ' + perturbation_y_label, color='k')
+    ax1.set_title('Translational error [m] ' + perturbation_loop_label +
+                  ' \in ' + spoil_plot_frame + '$')
+    cax1 = ax1.imshow(error_matrix_translations, interpolation='nearest')
+    divider = make_axes_locatable(ax1)
+    cax = divider.append_axes("right", size="5%", pad=0.1)
+    fig.colorbar(cax1, ax=ax1, cax=cax)
+    ax1.spines['left'].set_position(('outward', 10))
+    ax1.spines['bottom'].set_position(('outward', 10))
+    ax1.spines['right'].set_visible(False)
+    ax1.spines['top'].set_visible(False)
+    ax1.yaxis.set_ticks_position('left')
+    ax1.xaxis.set_ticks_position('bottom')
+
+    ax2.set_xlabel('Perturbation ' + perturbation_x_label, color='k')
+    ax2.set_title('Angular error [deg] ' + perturbation_loop_label + ' \in ' +
+                  spoil_plot_frame + '$')
+    cax2 = ax2.imshow(error_matrix_angles, interpolation='nearest')
+    divider = make_axes_locatable(ax2)
+    cax = divider.append_axes("right", size="5%", pad=0.1)
+    fig.colorbar(cax2, ax=ax2, cax=cax)
+    ax2.spines['left'].set_visible(False)
+    ax2.spines['bottom'].set_position(('outward', 10))
+    ax2.spines['right'].set_visible(False)
+    ax2.spines['top'].set_visible(False)
+    ax2.yaxis.set_visible(False)
+    plt.show()
+
+
 if __name__ == '__main__':
   parser = argparse.ArgumentParser(description=__doc__)
   parser.add_argument('--csv_file_names', type=str,
@@ -113,102 +265,9 @@ if __name__ == '__main__':
   font.set_weight('light')
   font.set_style('normal')
   colors = ['b', 'g', 'c', 'm', 'y', 'k', 'r']
-  dt = np.dtype([
-      ('algorithm_name', np.str_, 50),
-      ('pose_pair_num', np.uint, 1),
-      ('iteration_num', np.uint, 1),
-      ('prefiltering', np.bool, 1),
-      ('poses_B_H_csv_file', np.str_, 50),
-      ('poses_W_E_csv_file', np.str_, 50),
-      ('success', np.bool, 1),
-      ('position_rmse', np.float64, 1),
-      ('orientation_rmse', np.float64, 1),
-      ('num_inliers', np.uint, 1),
-      ('num_input_poses', np.uint, 1),
-      ('num_posesafter_filtering', np.uint, 1),
-      ('runtime_s', np.float64, 1),
-      ('loop_error_position_m', np.float64, 1),
-      ('loop_error_orientation_deg', np.float64, 1),
-      ('singular_values', np.str_, 300),
-      ('bad_singular_values', np.bool, 1),
-      ('dataset', np.str_, 50)])
-
-  get_header = True
-  print("Evaluating the following result files: {}".format(args.csv_file_names))
-  for csv_file_name in args.csv_file_names:
-    if get_header:
-      header = np.genfromtxt(csv_file_name, dtype=str,
-                             max_rows=1, delimiter=',')
-      get_header = False
-      data = np.genfromtxt(csv_file_name, dtype=dt,
-                           skip_header=1, delimiter=',').copy()
-    else:
-      # print(header)
-      body = np.genfromtxt(csv_file_name, dtype=dt,
-                           skip_header=1, delimiter=',')
-      data = np.append(data, body.copy())
-
-  methods = []
-  datasets = []
-  position_rmses_per_method = {}
-  orientation_rmses_per_method = {}
-  position_rmses = []
-  orientation_rmses = []
-  runtimes = []
-  runtimes_per_method = {}
-
-  max_index = 0
-  max_index_ds = 0
-  for row in data:
-    method = row[0]
-    b_h_filename = row[4]
-    w_e_filename = row[5]
-    success = row[6]
-    position_rmse = row[7]
-    orientation_rmse = row[8]
-    runtime = row[12]
-    dataset = row[17]
-
-    if not success:
-      # TODO(ff): Create a plot with the success rate?
-      continue
-
-    if dataset in datasets:
-      index_ds = datasets.index(dataset)
-    else:
-      index_ds = max_index_ds
-      datasets.append(dataset)
-      max_index_ds += 1
-    if method in methods:
-      index = methods.index(method)
-    else:
-      index = max_index
-      methods.append(method)
-      position_rmses.append([])
-      orientation_rmses.append([])
-      runtimes.append([])
-      max_index += 1
-    if dataset not in position_rmses_per_method:
-      position_rmses_per_method[dataset] = dict()
-    if method not in position_rmses_per_method[dataset]:
-      position_rmses_per_method[dataset][method] = list()
-    position_rmses_per_method[dataset][method].append(position_rmse)
-
-    if dataset not in orientation_rmses_per_method:
-      orientation_rmses_per_method[dataset] = dict()
-    if method not in orientation_rmses_per_method[dataset]:
-      orientation_rmses_per_method[dataset][method] = list()
-    orientation_rmses_per_method[dataset][method].append(orientation_rmse)
-
-    if dataset not in runtimes_per_method:
-      runtimes_per_method[dataset] = dict()
-    if method not in runtimes_per_method[dataset]:
-      runtimes_per_method[dataset][method] = list()
-    runtimes_per_method[dataset][method].append(runtime)
-
-    position_rmses[index].append(position_rmse)
-    orientation_rmses[index].append(orientation_rmse)
-    runtimes[index].append(runtime)
+  [methods, datasets, position_rmses_per_method, orientation_rmses_per_method,
+   position_rmses, orientation_rmses, runtimes, runtimes_per_method,
+   spoiled_data] = collect_data_from_csv(args.csv_file_names)
   print("Plotting the results of the follwoing methods: \n\t{}".format(
       ', '.join(methods)))
   print("Creating plots for the following datasets:\n{}".format(datasets))
@@ -219,3 +278,41 @@ if __name__ == '__main__':
         [position_rmses_per_method[dataset][method] for method in methods],
         [orientation_rmses_per_method[dataset][method] for method in methods])
   generate_time_plot(methods, datasets, runtimes_per_method, colors)
+
+  min_max_step_times = {
+      'start': 0.0,
+      'end': 0.24,
+      'step': 0.03,
+  }
+
+  min_max_step_translation = {
+      'start': 0.0,
+      'end': 0.2,
+      'step': 0.1,
+  }
+  min_max_step_angle = {
+      'start': 0.0,
+      'end': 90.0 / 180 * np.pi,
+      'step': 15.0 / 180 * np.pi,
+  }
+
+  # min_max_step_times = {
+  #     'start': -0.0499999,
+  #     'end': 0.05,
+  #     'step': 0.05,
+  # }
+  #
+  # min_max_step_translation = {
+  #     'start': 0.0,
+  #     'end': 0.1,
+  #     'step': 0.02,
+  # }
+  # min_max_step_angle = {
+  #     'start': 0.0,
+  #     'end': 25.0 / 180 * np.pi,
+  #     'step': 5.0 / 180 * np.pi,
+  # }
+
+  generate_optimization_circle_error_plot(
+      min_max_step_times, min_max_step_translation, min_max_step_angle,
+      spoiled_data)
