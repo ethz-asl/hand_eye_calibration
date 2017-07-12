@@ -275,7 +275,7 @@ def run_optimization_experiment(time_offset_range, angle_offset_range,
                                                random_angle_offset)
     create_path(initial_guess_calibration_file)
     initial_guess = ExtrinsicCalibration(
-        time_offset_initial_guess_spoiled, dq_H_E_initial_guess)
+        time_offset_initial_guess_spoiled, dq_H_E_initial_guess_spoiled)
     initial_guess.writeJson(initial_guess_calibration_file)
 
     # Init optimization result
