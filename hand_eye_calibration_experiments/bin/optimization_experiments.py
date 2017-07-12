@@ -447,7 +447,7 @@ if __name__ == "__main__":
    optimization_config) = get_optimization_with_spoiled_initial_calibration_config()
 
   # Define parameter ranges for experiment.
-  plot_type = "time_angle"
+  plot_type = "angle_translation_complete"
 
   if plot_type == "time_angle":
     time_offset_ranges = [[0., 0.03], [0.03, 0.06], [0.06, 0.09], [0.09, 0.12],
@@ -475,6 +475,16 @@ if __name__ == "__main__":
 
     translation_offset_ranges = [[0., 0.1], [0.1, 0.2], [0.2, 0.3], [0.3, 0.4],
                                  [0.4, 0.5], [0.5, 0.6], [0.6, 0.7], [0.7, 0.8]]
+  elif plot_type == "angle_translation_complete":
+    time_offset_ranges = [[0., 0.]]
+
+    angle_offset_ranges = [[0., 15.], [15., 30.], [30., 45.], [45., 60.],
+                           [60., 75.], [75., 90.], [90., 105.], [105., 120.],
+                           [120., 135.], [135., 150.], [150., 165.], [165., 180.]]
+
+    translation_offset_ranges = [[0., 0.1], [0.1, 0.2], [0.2, 0.3], [0.3, 0.4],
+                                 [0.4, 0.5], [0.5, 0.6], [0.6, 0.7], [0.7, 0.8],
+                                 [0.8, 0.9],  [0.9, 1.0]]
   else:
     assert False, "Unkown plot type: {}".format(plot_type)
 
