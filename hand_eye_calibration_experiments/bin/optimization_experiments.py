@@ -447,13 +447,36 @@ if __name__ == "__main__":
    optimization_config) = get_optimization_with_spoiled_initial_calibration_config()
 
   # Define parameter ranges for experiment.
-  time_offset_ranges = [[0., 0.03], [0.03, 0.06], [0.06, 0.09], [
-      0.09, 0.12], [0.12, 0.15], [0.15, 0.18], [0.18, 0.21], [0.21, 0.24]]
+  plot_type = "time_angle"
 
-  angle_offset_ranges = [[0., 15.], [15., 30.],
-                         [30., 45.], [45., 60.], [60., 75.], [75., 90.]]
+  if plot_type == "time_angle":
+    time_offset_ranges = [[0., 0.03], [0.03, 0.06], [0.06, 0.09], [0.09, 0.12],
+                          [0.12, 0.15], [0.15, 0.18], [0.18, 0.21], [0.21, 0.24]]
 
-  translation_offset_ranges = [[0., 0.1], [0.1, 0.2]]
+    angle_offset_ranges = [[0., 15.], [15., 30.], [30., 45.], [45., 60.],
+                           [60., 75.], [75., 90.], [90., 105.], [105., 120.]]
+
+    translation_offset_ranges = [[0., 0.1]]
+
+  elif plot_type == "time_translation":
+    time_offset_ranges = [[0., 0.03], [0.03, 0.06], [0.06, 0.09], [0.09, 0.12],
+                          [0.12, 0.15], [0.15, 0.18], [0.18, 0.21], [0.21, 0.24]]
+
+    angle_offset_ranges = [[0., 15.]]
+
+    translation_offset_ranges = [[0., 0.1], [0.1, 0.2], [0.2, 0.3], [0.3, 0.4],
+                                 [0.4, 0.5], [0.5, 0.6], [0.6, 0.7], [0.7, 0.8]]
+
+  elif plot_type == "angle_translation":
+    time_offset_ranges = [[0., 0.03]]
+
+    angle_offset_ranges = [[0., 15.], [15., 30.], [30., 45.], [45., 60.],
+                           [60., 75.], [75., 90.], [90., 105.], [105., 120.]]
+
+    translation_offset_ranges = [[0., 0.1], [0.1, 0.2], [0.2, 0.3], [0.3, 0.4],
+                                 [0.4, 0.5], [0.5, 0.6], [0.6, 0.7], [0.7, 0.8]]
+  else:
+    assert False, "Unkown plot type: {}".format(plot_type)
 
   # Convert degrees to rad.
   for angle_offset_range in angle_offset_ranges:
