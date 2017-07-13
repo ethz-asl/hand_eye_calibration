@@ -98,7 +98,7 @@ def generate_time_plot(methods, datasets, runtimes_per_method, colors):
 
 def generate_optimization_circle_error_plot(
         min_max_step_time_spoil, min_max_step_translation_spoil,
-        min_max_step_angle_spoil, data):
+        min_max_step_angle_spoil, data, plot_order, num_measurements_per_bin):
   [loop_errors_position_m, loop_errors_orientation_deg,
    spoiled_initial_guess_angle_offsets,
    spoiled_initial_guess_translation_norm_offsets,
@@ -119,9 +119,13 @@ def generate_optimization_circle_error_plot(
                      min_max_step_angle_spoil['step'],
                      min_max_step_angle_spoil['step'])
 
-  # Decide here what to plot against what.
-  plot_order = "translation_time_angle"
-  # plot_order = "time_translation_angle"
+  # Fine tune the plot here.
+  # cap_translations = True
+  # cap_angles = True
+  cap_translations = False
+  cap_angles = False
+  translation_cap_value = 1.0
+  angle_cap_value = 10.0
 
   if plot_order == "translation_time_angle":
     loop_x = angles
@@ -133,6 +137,17 @@ def generate_optimization_circle_error_plot(
     perturbation_x_label = "Angle [deg]"
     perturbation_y_label = "Time [s]"
     perturbation_loop_label = "$|x_{spoil}|"
+
+  elif plot_order == "angle_time_translation":
+    loop_x = translation_norms
+    loop_y = times
+    loop_plot = angles
+    x_spoils = spoiled_initial_guess_translation_norm_offsets
+    y_spoils = spoiled_initial_guess_time_offsets
+    plot_spoils = spoiled_initial_guess_angle_offsets
+    perturbation_x_label = "Translation [m]"
+    perturbation_y_label = "Time [s]"
+    perturbation_loop_label = "$\\alpha_{spoil}"
 
   elif plot_order == "time_translation_angle":
     loop_x = angles
@@ -175,8 +190,9 @@ def generate_optimization_circle_error_plot(
     assert plot_idx > 0
     assert x_idx < x_steps, ("x " + str(x_spoil) + str(loop_x))
     assert y_idx < y_steps, ("y " + str(y_spoil) + str(loop_y))
-    assert plot_idx < plot_steps, ("plot " + str(plot_spoil) +
-                                   str(loop_plot))
+    assert plot_idx < plot_steps, ("plot idx: " + str(plot_idx) +
+                                   ", plot_spoil: " + str(plot_spoil) +
+                                   ", plot range: " + str(loop_plot))
     error_bins_translations[plot_idx - 1][y_idx - 1][x_idx - 1].append(
         loop_error_position_m)
     error_bins_angles[plot_idx - 1][y_idx - 1][x_idx - 1].append(
@@ -189,20 +205,37 @@ def generate_optimization_circle_error_plot(
         (y_steps - 1, x_steps - 1))
     for y_idx, y in enumerate(loop_y[:-1]):
       for x_idx, x in enumerate(loop_x[:-1]):
+        num_measurements_per_bin_translation = len(
+            error_bins_translations[plot_idx][y_idx][x_idx])
+        assert num_measurements_per_bin_translation == num_measurements_per_bin, (
+            "len: " + str(num_measurements_per_bin_translation))
+        num_measurements_per_bin_angles = len(
+            error_bins_angles[plot_idx][y_idx][x_idx])
+        assert num_measurements_per_bin_angles == num_measurements_per_bin, (
+            "len: " + str(num_measurements_per_bin_angles))
         # mean_translation = np.max(
         mean_translation = np.mean(
             np.array(error_bins_translations[plot_idx][y_idx][x_idx]))
-        error_matrix_translations[y_idx, x_idx] = mean_translation.copy()
+        if cap_translations:
+          mean_translation = min(mean_translation, translation_cap_value)
+        error_matrix_translations[y_idx, x_idx] = mean_translation
         # mean_angles = np.max(
         mean_angles = np.mean(
             np.array(error_bins_angles[plot_idx][y_idx][x_idx]))
-        error_matrix_angles[y_idx, x_idx] = mean_angles.copy()
+        if cap_angles:
+          mean_angles = min(mean_angles, angle_cap_value)
+        error_matrix_angles[y_idx, x_idx] = mean_angles
     fig, axes = plt.subplots(1, 2)
     (ax1, ax2) = axes
-
-    x_tick_labels = (
-        '[' + np.char.array(loop_x[:-1] * 180 / np.pi) + ',' +
-        np.char.array(loop_x[1:] * 180 / np.pi) + ')')
+    if (plot_order == "translation_time_angle" or
+            plot_order == "time_translation_angle"):
+      x_tick_labels = (
+          '[' + np.char.array(loop_x[:-1] * 180 / np.pi) + ',' +
+          np.char.array(loop_x[1:] * 180 / np.pi) + ')')
+    else:
+      x_tick_labels = (
+          '[' + np.char.array(loop_x[:-1]) + ',' +
+          np.char.array(loop_x[1:]) + ')')
     y_tick_labels = (
         '[' + np.char.array(loop_y[:-1]) + ',' +
         np.char.array(loop_y[1:]) + ')')
@@ -210,12 +243,17 @@ def generate_optimization_circle_error_plot(
     y_ticks = range(y_steps - 1)
     plt.setp(axes, xticks=x_ticks, xticklabels=x_tick_labels,
              yticks=y_ticks, yticklabels=y_tick_labels)
-    spoil_plot_frame = '[' + \
-        str(plot_value) + ',' + str(loop_plot[plot_idx + 1]) + ')'
+    if plot_order == "angle_time_translation":
+      spoil_plot_frame = ('[' +
+                          str(plot_value * 180 / np.pi) + '^\circ,' +
+                          str(loop_plot[plot_idx + 1] * 180 / np.pi) + '^\circ)')
+    else:
+      spoil_plot_frame = '[' + \
+          str(plot_value) + ',' + str(loop_plot[plot_idx + 1]) + ')'
 
     ax1.set_xlabel('Perturbation ' + perturbation_x_label, color='k')
     ax1.set_ylabel('Perturbation ' + perturbation_y_label, color='k')
-    ax1.set_title('Translational error [m] ' + perturbation_loop_label +
+    ax1.set_title('Translational error [m], ' + perturbation_loop_label +
                   ' \in ' + spoil_plot_frame + '$')
     cax1 = ax1.imshow(error_matrix_translations, interpolation='nearest')
     divider = make_axes_locatable(ax1)
@@ -229,7 +267,7 @@ def generate_optimization_circle_error_plot(
     ax1.xaxis.set_ticks_position('bottom')
 
     ax2.set_xlabel('Perturbation ' + perturbation_x_label, color='k')
-    ax2.set_title('Angular error [deg] ' + perturbation_loop_label + ' \in ' +
+    ax2.set_title('Angular error [deg], ' + perturbation_loop_label + ' \in ' +
                   spoil_plot_frame + '$')
     cax2 = ax2.imshow(error_matrix_angles, interpolation='nearest')
     divider = make_axes_locatable(ax2)
@@ -279,23 +317,89 @@ if __name__ == '__main__':
         [orientation_rmses_per_method[dataset][method] for method in methods])
   generate_time_plot(methods, datasets, runtimes_per_method, colors)
 
-  min_max_step_times = {
-      'start': 0.0,
-      'end': 0.24,
-      'step': 0.03,
-  }
+  # Decide here what to plot against what.
+  plot_order = "translation_time_angle"
+  # plot_order = "angle_time_translation"
+  # plot_order = "time_translation_angle"
+  # plot_order = "time_translation_angle_max"
+  num_measurements_per_bin = 60
 
-  min_max_step_translation = {
-      'start': 0.0,
-      'end': 0.2,
-      'step': 0.1,
-  }
-  min_max_step_angle = {
-      'start': 0.0,
-      'end': 90.0 / 180 * np.pi,
-      'step': 15.0 / 180 * np.pi,
-  }
+  # Time angle
+  if plot_order == "translation_time_angle":
+    min_max_step_times = {
+        'start': 0.0,
+        'end': 0.23,
+        'step': 0.03,
+    }
 
+    min_max_step_translation = {
+        'start': 0.0,
+        'end': 0.1,
+        'step': 0.1,
+    }
+    min_max_step_angle = {
+        'start': 0.0,
+        'end': 120.0 / 180 * np.pi,
+        'step': 15.0 / 180 * np.pi,
+    }
+
+  # Time translation
+  elif plot_order == "angle_time_translation":
+    min_max_step_times = {
+        'start': 0.0,
+        'end': 0.23,
+        'step': 0.03,
+    }
+
+    min_max_step_translation = {
+        'start': 0.0,
+        'end': 0.8,
+        'step': 0.1,
+    }
+    min_max_step_angle = {
+        'start': 0.0,
+        'end': 15.0 / 180 * np.pi,
+        'step': 15.0 / 180 * np.pi,
+    }
+
+  # Angle translation
+  elif plot_order == "time_translation_angle":
+    min_max_step_times = {
+        'start': 0.0,
+        'end': 0.03,
+        'step': 0.03,
+    }
+
+    min_max_step_translation = {
+        'start': 0.0,
+        'end': 0.8,
+        'step': 0.1,
+    }
+    min_max_step_angle = {
+        'start': 0.0,
+        'end': 120.0 / 180 * np.pi,
+        'step': 15.0 / 180 * np.pi,
+    }
+
+  # Angle translation complete
+  elif plot_order == "time_translation_angle_max":
+    min_max_step_times = {
+        'start': 0.0,
+        'end': 0.1,
+        'step': 0.1,
+    }
+
+    min_max_step_translation = {
+        'start': 0.0,
+        'end': 1.0,
+        'step': 0.1,
+    }
+    min_max_step_angle = {
+        'start': 0.0,
+        'end': 179.0 / 180 * np.pi,
+        'step': 15.0 / 180 * np.pi,
+    }
+    plot_order = "time_translation_angle"
   # min_max_step_times = {
   #     'start': -0.0499999,
   #     'end': 0.05,
@@ -315,4 +419,4 @@ if __name__ == '__main__':
 
   generate_optimization_circle_error_plot(
       min_max_step_times, min_max_step_translation, min_max_step_angle,
-      spoiled_data)
+      spoiled_data, plot_order, num_measurements_per_bin)
