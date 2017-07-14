@@ -10,7 +10,7 @@ model {
 		covPosition { sigma "0.01" }
 		covOrientation { sigma "0.01" }
 
-		absoluteMeasurements false
+		absoluteMeasurements true
 
 		rotation {
 			used false
@@ -24,6 +24,12 @@ model {
 		delay {
 			used false
 		}
+
+    mestimator
+    {
+      name "Cauchy"
+      cauchySigma2 "10"
+    }
 	}
 	pose2 {
 		frame body
@@ -32,7 +38,7 @@ model {
 		covPosition { sigma "0.01" }
 		covOrientation { sigma "0.01" }
 
-		absoluteMeasurements false
+		absoluteMeasurements true
 
 		delay
 		{
@@ -68,7 +74,7 @@ calibrator {
 	timeBaseSensor pose1
 	estimator {
 		optimizer {
-			maxIterations 20
+			maxIterations 150
 		}
 	}
 }

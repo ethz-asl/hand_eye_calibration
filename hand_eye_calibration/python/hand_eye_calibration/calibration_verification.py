@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 
 import math
+import numpy as np
 
 from hand_eye_calibration.dual_quaternion_hand_eye_calibration import (
     evaluate_alignment, align_paths_at_index, get_aligned_poses, compute_pose_error)
@@ -8,6 +9,8 @@ from hand_eye_calibration.time_alignment import compute_aligned_poses
 from hand_eye_calibration.dual_quaternion import DualQuaternion
 from hand_eye_calibration.quaternion import Quaternion
 from hand_eye_calibration.dual_quaternion_hand_eye_calibration import HandEyeConfig
+from hand_eye_calibration.hand_eye_calibration_plotting_tools import (
+    plot_poses)
 
 
 def evaluate_calibration(time_stamped_poses_B_H, time_stamped_poses_W_E, dq_H_E, time_offset, config):
@@ -41,7 +44,13 @@ def evaluate_calibration(time_stamped_poses_B_H, time_stamped_poses_W_E, dq_H_E,
 
   (rmse_position,
    rmse_orientation,
-   inlier_flags) = evaluate_alignment(poses_B_H, poses_W_H, config)
+   inlier_flags) = evaluate_alignment(poses_B_H, poses_W_H, config, config.visualize)
+
+  if config.visualize:
+    every_nth_element = config.visualize_plot_every_nth_pose
+    plot_poses([poses_B_H[:: every_nth_element],
+                poses_W_H[:: every_nth_element]],
+               True, title="3D Poses After Fine Alignment")
 
   return ((rmse_position, rmse_orientation), sum(inlier_flags))
 

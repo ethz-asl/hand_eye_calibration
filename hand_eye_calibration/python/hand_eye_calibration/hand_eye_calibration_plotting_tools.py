@@ -111,6 +111,9 @@ def plot_poses(poses_list, plot_arrows=True, title="", blocking=True):
           arrowstyle="-|>",
           color="b")
       ax.add_artist(a)
+
+  ax.auto_scale_xyz([axis_min, axis_max], [
+      axis_min, axis_max], [axis_min, axis_max])
   plt.show(block=blocking)
 
 
