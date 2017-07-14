@@ -90,13 +90,16 @@ def collect_data_from_csv(csv_file_names, get_header=True):
     loop_error_orientation_deg = row[14]
     bad_singular_values = row[16]
     runtime_optimization = row[19]
-    initial_guess_angle = row[20]
-    initial_guess_string = ' '.join((row[21].lstrip()).split()).replace(
-        " ", ",").replace("[,", "[").replace(",,", ",")
-    initial_guess_translation = np.array(
-        ast.literal_eval(initial_guess_string))
-    initial_guess_translation_norm = np.linalg.norm(initial_guess_translation)
-    initial_guess_time = row[22]
+    initial_guess_angle = 0 if row[20] is None else row[20]
+    if row[21] != "None":
+      initial_guess_string = ' '.join((row[21].lstrip()).split()).replace(
+          " ", ",").replace("[,", "[").replace(",,", ",")
+      initial_guess_translation = np.array(
+          ast.literal_eval(initial_guess_string))
+      initial_guess_translation_norm = np.linalg.norm(initial_guess_translation)
+    else:
+      initial_guess_translation_norm = 0
+    initial_guess_time = 0 if row[22] is None else row[22]
     dataset = row[23]
 
     runtime += runtime_optimization
