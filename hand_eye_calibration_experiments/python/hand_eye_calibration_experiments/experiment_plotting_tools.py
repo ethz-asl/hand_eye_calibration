@@ -60,6 +60,7 @@ def collect_data_from_csv(csv_file_names, get_header=True):
       'RS_no_filter_no_opt': 'RS',
       'RS_filter_opt': 'PF_RS_O',
       'RS_no_filter_opt': 'RS_O',
+      'optimization_w_spoiled_init_calibration': 'S_PF_ES_O'
   }
 
   methods = []
