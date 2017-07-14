@@ -5,9 +5,6 @@
     local-name: doxygen_catkin
     uri: https://github.com/ethz-asl/doxygen_catkin.git
 - git:
-    local-name: aslam_cv2_basic # TODO get rid of aslam_cv2 as dependency ?
-    uri: git@github.com:ethz-asl/aslam_cv2_basic
-- git:
     local-name: aslam_cv2 # TODO get rid of aslam_cv2 as dependency ?
     uri: git@github.com:ethz-asl/aslam_cv2
 - git:
