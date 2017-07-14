@@ -125,6 +125,7 @@ class Quaternion(object):
   def get_random(cls, min_angle=0., max_angle=np.math.pi):
     axis = np.random.uniform(-1.0, 1.0, 3)
     axis /= np.linalg.norm(axis)
+    assert np.isclose(np.linalg.norm(axis), 1., atol=1e-8)
 
     angle = random.uniform(
         min_angle, max_angle)
