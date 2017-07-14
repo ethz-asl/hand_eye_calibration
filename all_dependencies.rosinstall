@@ -14,9 +14,6 @@
     local-name: aslam_cv2
     uri: 'git@github.com:ethz-asl/aslam_cv2.git'
 - git:
-    local-name: aslam_cv2_basic
-    uri: 'git@github.com:ethz-asl/aslam_cv2_basic.git'
-- git:
     local-name: eigen_catkin
     uri: 'git@github.com:ethz-asl/eigen_catkin.git'
 - git:
