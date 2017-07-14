@@ -229,9 +229,11 @@ def generate_optimization_circle_error_plot(
     (ax1, ax2) = axes
     if (plot_order == "translation_time_angle" or
             plot_order == "time_translation_angle"):
+      x_ticks_start = np.rint(loop_x[:-1] * 180 / np.pi).astype(int)
+      x_ticks_end = np.rint(loop_x[1:] * 180 / np.pi).astype(int)
       x_tick_labels = (
-          '[' + np.char.array(loop_x[:-1] * 180 / np.pi) + ',' +
-          np.char.array(loop_x[1:] * 180 / np.pi) + ')')
+          '[' + np.char.array(x_ticks_start) + ',' +
+          np.char.array(x_ticks_end) + ')')
     else:
       x_tick_labels = (
           '[' + np.char.array(loop_x[:-1]) + ',' +
