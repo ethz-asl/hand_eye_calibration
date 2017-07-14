@@ -43,6 +43,25 @@ def collect_data_from_csv(csv_file_names, get_header=True):
                            skip_header=1, delimiter=',')
       data = np.append(data, body.copy())
 
+  method_name_dict = {
+      'baseline_filter_opt': 'PF_B_O',
+      'baseline_no_filter_opt': 'B_O',
+      'baseline_filter_no_opt': 'PF_B',
+      'baseline_no_filter_no_opt': 'B',
+      'EC_no_opt': 'PF_EC',
+      'EC_opt': 'PF_EC_O',
+      'ES_no_opt': 'PF_ES',
+      'ES_opt': 'PF_ES_O',
+      'RC_filter_no_opt': 'PF_RC',
+      'RC_no_filter_no_opt': 'RC',
+      'RC_filter_opt': 'PF_RC_O',
+      'RC_no_filter_opt': 'RC_O',
+      'RS_filter_no_opt': 'PF_RS',
+      'RS_no_filter_no_opt': 'RS',
+      'RS_filter_opt': 'PF_RS_O',
+      'RS_no_filter_opt': 'RS_O',
+  }
+
   methods = []
   datasets = []
   position_rmses_per_method = {}
@@ -69,6 +88,8 @@ def collect_data_from_csv(csv_file_names, get_header=True):
     runtime = row[12]
     loop_error_position_m = row[13]
     loop_error_orientation_deg = row[14]
+    bad_singular_values = row[16]
+    runtime_optimization = row[19]
     initial_guess_angle = row[20]
     initial_guess_string = ' '.join((row[21].lstrip()).split()).replace(
         " ", ",").replace("[,", "[").replace(",,", ",")
@@ -78,7 +99,10 @@ def collect_data_from_csv(csv_file_names, get_header=True):
     initial_guess_time = row[22]
     dataset = row[23]
 
-    if not success:
+    runtime += runtime_optimization
+    method = method_name_dict[method]
+
+    if not success or bad_singular_values:
       # TODO(ff): Create a plot with the success rate?
       # And for the initial guess spoil this should also be incorporated.
       continue
