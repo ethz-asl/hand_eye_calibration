@@ -603,7 +603,7 @@ def compute_hand_eye_calibration_BASELINE(dq_B_H_vec, dq_W_E_vec, config):
 
   (rmse_position,
    rmse_orientation,
-   inlier_flags) = evaluate_alignment(poses_B_H, poses_W_H, config)
+   inlier_flags) = evaluate_alignment(poses_B_H, poses_W_H, config, config.visualize)
 
   end_time = timeit.default_timer()
   runtime = end_time - start_time
@@ -931,7 +931,7 @@ def compute_hand_eye_calibration_RANSAC(dq_B_H_vec, dq_W_E_vec, config):
                                                best_estimated_dq_H_E)
     (rmse_position_all,
      rmse_orientation_all,
-     inlier_flags) = evaluate_alignment(poses_B_H, poses_W_H, config)
+     inlier_flags) = evaluate_alignment(poses_B_H, poses_W_H, config, config.visualize)
 
     every_nth_element = config.visualize_plot_every_nth_pose
     plot_poses([poses_B_H[:: every_nth_element],
