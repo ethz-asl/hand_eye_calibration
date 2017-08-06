@@ -105,6 +105,12 @@ class QuaternionOperations(unittest.TestCase):
         [[0, 0, 1, 0], [1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 0, 1]])
     npt.assert_allclose(transformation_matrix, expected_transformation_matrix)
 
+  def test_rotate_vector(self):
+    q = Quaternion(0.5, 0.5, 0.5, 0.5)
+    rotated_vector = q.rotate_vector(np.array([1., 2., 3.]))
+    expected_rotated_vector = np.array([3., 1., 2.])
+    npt.assert_allclose(rotated_vector, expected_rotated_vector)
+
   def test_angular_velocity_between_quaternions(self):
     # TODO(ff): Add test.
     pass
