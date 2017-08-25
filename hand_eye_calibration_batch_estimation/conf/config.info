@@ -25,11 +25,11 @@ model {
 			used false
 		}
 
-    mestimator
-    {
-      name "Cauchy"
-      cauchySigma2 "10"
-    }
+		mestimator
+		{
+			name "Cauchy"
+			cauchySigma2 "10"
+		}
 	}
 	pose2 {
 		frame body
@@ -38,7 +38,7 @@ model {
 		covPosition { sigma "0.01" }
 		covOrientation { sigma "0.01" }
 
-		absoluteMeasurements true
+		absoluteMeasurements false
 
 		delay
 		{
