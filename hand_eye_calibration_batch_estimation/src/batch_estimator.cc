@@ -5,8 +5,8 @@
 #include <gflags/gflags.h>
 #include <glog/logging.h>
 #include <Eigen/Core>
-#include <aslam/calibration/algo/MotionCaptureSource.hpp>
-#include <aslam/calibration/CalibratorI.hpp>
+#include <aslam/calibration/input/MotionCaptureSource.hpp>
+#include <aslam/calibration/calibrator/CalibratorI.hpp>
 #include <aslam/calibration/data/MeasurementsContainer.h>
 #include <aslam/calibration/data/PoseMeasurement.h>
 #include <aslam/calibration/model/FrameGraphModel.h>
@@ -80,7 +80,7 @@ ValueStoreRef valueStoreFromFile(std::string file_path, sm::BoostPropertyTree * 
   return ValueStoreRef(bpt);
 }
 
-void readPosesFromCsv(const std::string & path, PoseSensor & pose_sensor) {
+void readPosesFromCsv(const std::string & path, PoseSensor & pose_sensor, aslam::calibration::CalibratorI & c) {
   std::ifstream indata(path);
   std::vector<double> values;
   if (indata.good()) {
@@ -93,14 +93,14 @@ void readPosesFromCsv(const std::string & path, PoseSensor & pose_sensor) {
         values.push_back(std::stod(cell));
       }
       if (values.size() == 1) {  // outlier
-        pose_sensor.addMeasurement(PoseSensor::Outlier, values[0]);
+        pose_sensor.addMeasurement(values[0], PoseSensor::Outlier, c.getCurrentStorage());
       } else {
         CHECK_EQ(8, values.size());
-        Eigen::Vector3d t_m_mf(values[1], values[2], values[3]);
-        Eigen::Vector4d q_m_f(values[4], values[5], values[6], values[7]);
-        q_m_f = toInternalQuaternionConvention(q_m_f);
-        CHECK_NEAR(1, q_m_f.norm(), 1e-8);
-        pose_sensor.addMeasurement(q_m_f, t_m_mf, Timestamp(values[0]));
+        Eigen::Vector3d t(values[1], values[2], values[3]);
+        Eigen::Vector4d q(values[4], values[5], values[6], values[7]);
+        q = toInternalQuaternionConvention(q);
+        CHECK_NEAR(1, q.norm(), 1e-8);
+        pose_sensor.addMeasurement(Timestamp(values[0]), q, t, c.getCurrentStorage());
       }
     }
   } else {
@@ -183,12 +183,12 @@ int main(int argc, char ** argv) {
   PoseTrajectory traj(model, "traj", vs_model);
   model.addModulesAndInit(pose1_sensor, pose2_sensor, traj);
 
-  readPosesFromCsv(FLAGS_pose1_csv, pose1_sensor);
-  readPosesFromCsv(FLAGS_pose2_csv, pose2_sensor);
-
   auto c = createBatchCalibrator(vs_config.getChild("calibrator"), std::shared_ptr<Model>(&model, sm::null_deleter()));
 
-  for (auto & m : pose1_sensor.getAllMeasurements()) {
+  readPosesFromCsv(FLAGS_pose1_csv, pose1_sensor, *c);
+  readPosesFromCsv(FLAGS_pose2_csv, pose2_sensor, *c);
+
+  for (auto & m : pose1_sensor.getAllMeasurements(c->getCurrentStorage())) {
     c->addMeasurementTimestamp(m.first, pose1_sensor);  // add timestamps to determine the batch interval
   }
 
