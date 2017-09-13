@@ -1,6 +1,10 @@
 # hand_eye_calibration
 Python tools to perform hand-eye calibration.
 
+It includes time alignment of sets of poses, the implementation of a dual-quaternion based approach to solve the hand eye calibration, pre-filtering and filtering of poses, as well as the integration of a pose refinement step using batch optimization from [oomact](https://github.com/ethz-asl/oomact).
+
+There are also classes that implement quaternions and dual-quaternions a set of plotting tools that were used to generate the plots in the paper.
+
 The datasets where these algorithms are evaluated on can be found [here](http://projects.asl.ethz.ch/datasets/doku.php?id=handeyecalibration2017).
 
 
