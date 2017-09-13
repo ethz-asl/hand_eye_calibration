@@ -1,6 +1,8 @@
 # hand_eye_calibration
 Python tools to perform hand-eye calibration.
 
+The datasets where these algorithms are evaluated on can be found [here](http://projects.asl.ethz.ch/datasets/doku.php?id=handeyecalibration2017).
+
 
 ## Installation
 
