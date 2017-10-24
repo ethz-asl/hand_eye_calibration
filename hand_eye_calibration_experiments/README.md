@@ -44,7 +44,11 @@ rosrun hand_eye_calibration_experiments optimization_experiments.py
 **Example:**
 
 ```
-rosrun hand_eye_calibration_experiments optimization_experiments.py \ --aligned_poses_B_H_csv_files \ TANGO_exCALIBur_2/CALIGULA_2017-04-06-18-21-33.csv \ TANGO_exCALIBur_2/MARS_2017-04-06-18-23-37.csv \ TANGO_exCALIBur_2/NERO_2017-04-06-18-25-25.csv \
+rosrun hand_eye_calibration_experiments optimization_experiments.py \
+--aligned_poses_B_H_csv_files \
+          TANGO_exCALIBur_2/CALIGULA_2017-04-06-18-21-33.csv \
+          TANGO_exCALIBur_2/MARS_2017-04-06-18-23-37.csv \
+          TANGO_exCALIBur_2/NERO_2017-04-06-18-25-25.csv \
 --num_iterations=10 \
 --result_directory TANGO_exCALIBur_2/optimization_results \ --is_absolute_pose_sensor 0 0 0 \
 ```
