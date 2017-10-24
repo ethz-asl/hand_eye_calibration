@@ -1,4 +1,7 @@
-# hand_eye_calibration
+# Hand-Eye-Calibration
+
+## Description
+
 Python tools to perform hand-eye calibration.
 
 If you are using these tools, please cite our [paper](http://www.fsr.ethz.ch/papers/FSR_2017_paper_73.pdf):
@@ -26,10 +29,9 @@ There are also classes that implement quaternions and dual-quaternions a set of 
 
 The datasets where these algorithms are evaluated on can be found [here](http://projects.asl.ethz.ch/datasets/doku.php?id=handeyecalibration2017).
 
-
 ## Installation
 
-**System Dependencies - Ubuntu 16.04:**
+### System Dependencies - Ubuntu 16.04
 
 ```bash
 # Install ROS repository
@@ -43,7 +45,7 @@ sudo apt-get install ros-kinetic-desktop-full doxygen python-catkin-tools
 
 ```
 
-**Workspace - OSX / Ubuntu 16.04 / Ubuntu 14.04:**
+### Workspace - OSX / Ubuntu 16.04 / Ubuntu 14.04
 ```bash
 # Create catkin workspace.
 export CATKIN_WS=~/catkin_ws
@@ -65,9 +67,9 @@ wstool update -j 8
 catkin build hand_eye_calibration hand_eye_calibration_target_extractor hand_eye_calibration_batch_estimation
 ```
 
-# Tutorial
+## Tutorial
 
-## Formats
+### Formats
 Our hand-eye calibration expects timestamped poses with Hamiltonian quaternions in the following format, where [.] denotes the unit:
 > p = [t[s], x[m], y[m], z[m], q_x, q_y, q_z, q_w]
 
@@ -76,14 +78,14 @@ Our scripts expect CSV files with the following format:
 t, x, y, z, q_x, q_y, q_z, q_w
 ```
 
-## Frames
+### Frames
 In our hand-eye calibration we use the following frames:
 - H: Hand — The frame of the robot end-effector (or the vicon output pose).
 - B: Base — The robot's base frame, usually the end-effector poses are expressed with respect to this frame.
 - E: Eye — The frame of the camera.
 - W: World - The frame of the target.
 
-## Usage
+### Usage
 
 All our tools can either be run via ROS, using
 
@@ -98,29 +100,32 @@ or directly by changing into this directory (e.g. `~/catkin_ws/src/hand_eye_cali
 ```
 
 A typical use case consists of the following steps (here using ROS):
-- Extract poses from tf (ROS transformation type) messages (with time stamps).
+
+- Extract poses from tf (ROS transformation type) messages (with time stamps):
   ```
   rosrun hand_eye_calibration tf_to_csv.py --bag calibration.bag --tf_source_frame end_effector --tf_target_frame base_link --csv_output_file tf_poses_timestamped.csv
   ```
-- Extract poses from images (with time stamps).
+- Extract poses from images (with time stamps):
   ```
   rosrun hand_eye_calibration target_extractor_interface.py --bag calibration.bag --calib_file_camera calib/camera_intrinsics.yaml --calib_file_target calib/target.yaml --image_topic /camera/rgb/image_raw --output_file camera_poses_timestamped.csv
   ```
-- Time alignment of the poses and interpolate the two sets at given time stamps.
+- Time alignment of the poses and interpolate the two sets at given time stamps:
   ```
   rosrun hand_eye_calibration compute_aligned_poses.py --poses_B_H_csv_file tf_poses_timestamped.csv --poses_W_E_csv_file camera_poses_timestamped.csv --aligned_poses_B_H_csv_file tf_aligned.csv --aligned_poses_W_E_csv_file camera_aligned.csv
   ```
-- Perform the dual-quaternion-based hand-eye calibration.
+- Perform the dual-quaternion-based hand-eye calibration:
   ```
   rosrun hand_eye_calibration compute_hand_eye_calibration.py --aligned_poses_B_H_csv_file tf_aligned.csv --aligned_poses_W_E_csv_file camera_aligned.csv --visualize True
   ```
-- Run optimization to refine the calibration
-  ```
- TODO
+- Run optimization to refine the calibration:
+ ```
+  todo todo todo todo
   ```
 
-## Running the Tests
+### Running the Tests
+
 Tests are all python [unittests](https://docs.python.org/3.7/library/unittest.html) and can be run with the following command:
+
 ```
 python test/test_<test_filename>.py
 ```
