@@ -31,8 +31,6 @@ The datasets where these algorithms are evaluated on can be found [here](http://
 
 **System Dependencies - Ubuntu 16.04:**
 
-**TODO** Complete
-
 ```bash
 # Install ROS repository
 sudo apt-get install software-properties-common
@@ -40,17 +38,10 @@ sudo add-apt-repository "deb http://packages.ros.org/ros/ubuntu xenial main"
 wget https://raw.githubusercontent.com/ros/rosdistro/master/ros.key -O - | sudo apt-key add -
 sudo apt-get update
 
-# Install system depdendencies
+# Install system depdendencies [INCOMPLETE]
 sudo apt-get install ros-kinetic-desktop-full doxygen python-catkin-tools
 
-
 ```
-
-**System Dependencies - OSX:**
-
- **TODO**
-
-
 
 **Workspace - OSX / Ubuntu 16.04 / Ubuntu 14.04:**
 ```bash
@@ -91,8 +82,6 @@ In our hand-eye calibration we use the following frames:
 - B: Base — The robot's base frame, usually the end-effector poses are expressed with respect to this frame.
 - E: Eye — The frame of the camera.
 - W: World - The frame of the target.
-
-**TODO:** Add the transformations here.
 
 ## Usage
 
