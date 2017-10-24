@@ -18,6 +18,9 @@ from hand_eye_calibration.algorithm_config import (
     get_exhaustive_search_pose_inliers_config,
     get_exhaustive_search_scalar_part_inliers_config,
     get_baseline_config)
+from hand_eye_calibration.extrinsic_calibration import ExtrinsicCalibration
+from hand_eye_calibration.bash_utils import readArrayFromCsv
+
 
 if __name__ == "__main__":
   parser = argparse.ArgumentParser(description='Align pairs of poses.')
@@ -38,7 +41,18 @@ if __name__ == "__main__":
       '--extrinsics_output_csv_file', type=str,
       help='Write estimated extrinsics to this file in spatial-extrinsics csv format')
 
-  parser.add_argument('--visualize', type=bool, default=False, help='Visualize the poses.')
+  parser.add_argument(
+      '--time_offset_output_csv_file', type=str,
+      help='Time offset input file. Is used to construct the calibration json '
+           'file that is needed for the optimization step.')
+  parser.add_argument(
+      '--calibration_output_json_file', type=str,
+      help='Calibration output file. Contains the result of the '
+           'dual-quaternion-based hand eye calibration and time alignment. '
+           'Is ued as a initial guess for the batch estimation.')
+
+  parser.add_argument('--visualize', type=bool,
+                      default=False, help='Visualize the poses.')
   parser.add_argument('--plot_every_nth_pose', type=int,
                       help='Plot only every n-th pose.', default=10)
   args = parser.parse_args()
@@ -52,6 +66,12 @@ if __name__ == "__main__":
       "Provide either poses_B_H or poses_H_B!"
   assert use_poses_W_E != use_poses_E_W, \
       "Provide either poses_W_E or poses_E_W!"
+
+  if args.calibration_output_json_file is not None:
+    assert args.time_offset_output_csv_file is not None, (
+        "In order to compose a complete calibration result json file, you " +
+        "need to provide the time alignment csv file as an input using " +
+        "this flag: --time_offset_output_csv_file")
 
   if use_poses_B_H:
     with open(args.aligned_poses_B_H_csv_file, 'r') as csvfile:
@@ -105,7 +125,7 @@ if __name__ == "__main__":
   # TODO(mfehr): Add param to switch between algorithms.
   # (_, hand_eye_config) = get_RANSAC_scalar_part_inliers_config(True)
   # (_, hand_eye_config) = get_RANSAC_classic_config(False)
-  (_, hand_eye_config) =  get_exhaustive_search_scalar_part_inliers_config()
+  (_, hand_eye_config) = get_exhaustive_search_scalar_part_inliers_config()
   # (_, hand_eye_config) = get_baseline_config(True)
 
   hand_eye_config.visualize = args.visualize
@@ -123,6 +143,16 @@ if __name__ == "__main__":
         dual_quat_B_H_vec, dual_quat_W_E_vec, hand_eye_config)
 
   if args.extrinsics_output_csv_file is not None:
-      print("Writing extrinsics to %s." % args.extrinsics_output_csv_file)
-      from hand_eye_calibration.csv_io import write_double_numpy_array_to_csv_file
-      write_double_numpy_array_to_csv_file(dq_H_E.to_pose(), args.extrinsics_output_csv_file);
+    print("Writing extrinsics to %s." % args.extrinsics_output_csv_file)
+    from hand_eye_calibration.csv_io import write_double_numpy_array_to_csv_file
+    write_double_numpy_array_to_csv_file(
+        dq_H_E.to_pose(), args.extrinsics_output_csv_file)
+
+  output_json_calibration = args.calibration_output_json_file is not None
+  has_time_offset_file = args.time_offset_output_csv_file is not None
+  if output_json_calibration and has_time_offset_file:
+    time_offset = float(readArrayFromCsv(
+        args.time_offset_output_csv_file)[0, 0])
+    calib = ExtrinsicCalibration(
+        time_offset, DualQuaternion.from_pose_vector(dq_H_E.to_pose()))
+    calib.writeJson(args.calibration_output_json_file)
