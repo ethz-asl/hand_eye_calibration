@@ -127,7 +127,6 @@ void writePosesToCsv(const std::string & path, aslam::calibration::CalibratorI &
 }
 
 ValueStoreRef loadConfigFile() {
-  //TODO find a solution for configuration files in installed packages. Maybe this works already?
   std::string config_file = FLAGS_config_file;
   const auto marker_pos = config_file.find(PACKAGE_PATH_MARKER);
   if (marker_pos != std::string::npos) {
