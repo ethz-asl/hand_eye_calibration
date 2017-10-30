@@ -20,7 +20,7 @@ rosrun hand_eye_calibration compute_aligned_poses.py \
 rosrun hand_eye_calibration compute_hand_eye_calibration.py \
 --aligned_poses_B_H_csv_file $ALIGNED_POSES_A  \
 --aligned_poses_W_E_csv_file $ALIGNED_POSES_B  \
---time_offset_output_csv_file time_offset.csv \
+--time_offset_input_csv_file time_offset.csv \
 --calibration_output_json_file calibration.json \
 --visualize=0
 

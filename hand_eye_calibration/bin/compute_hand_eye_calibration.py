@@ -42,14 +42,14 @@ if __name__ == "__main__":
       help='Write estimated extrinsics to this file in spatial-extrinsics csv format')
 
   parser.add_argument(
-      '--time_offset_output_csv_file', type=str,
+      '--time_offset_input_csv_file', type=str,
       help='Time offset input file. Is used to construct the calibration json '
            'file that is needed for the optimization step.')
   parser.add_argument(
       '--calibration_output_json_file', type=str,
       help='Calibration output file. Contains the result of the '
            'dual-quaternion-based hand eye calibration and time alignment. '
-           'Is ued as a initial guess for the batch estimation.')
+           'Is used as a initial guess for the batch estimation.')
 
   parser.add_argument('--visualize', type=bool,
                       default=False, help='Visualize the poses.')
@@ -68,10 +68,10 @@ if __name__ == "__main__":
       "Provide either poses_W_E or poses_E_W!"
 
   if args.calibration_output_json_file is not None:
-    assert args.time_offset_output_csv_file is not None, (
+    assert args.time_offset_input_csv_file is not None, (
         "In order to compose a complete calibration result json file, you " +
         "need to provide the time alignment csv file as an input using " +
-        "this flag: --time_offset_output_csv_file")
+        "this flag: --time_offset_input_csv_file")
 
   if use_poses_B_H:
     with open(args.aligned_poses_B_H_csv_file, 'r') as csvfile:
@@ -149,10 +149,10 @@ if __name__ == "__main__":
         dq_H_E.to_pose(), args.extrinsics_output_csv_file)
 
   output_json_calibration = args.calibration_output_json_file is not None
-  has_time_offset_file = args.time_offset_output_csv_file is not None
+  has_time_offset_file = args.time_offset_input_csv_file is not None
   if output_json_calibration and has_time_offset_file:
     time_offset = float(readArrayFromCsv(
-        args.time_offset_output_csv_file)[0, 0])
+        args.time_offset_input_csv_file)[0, 0])
     calib = ExtrinsicCalibration(
         time_offset, DualQuaternion.from_pose_vector(dq_H_E.to_pose()))
     calib.writeJson(args.calibration_output_json_file)
