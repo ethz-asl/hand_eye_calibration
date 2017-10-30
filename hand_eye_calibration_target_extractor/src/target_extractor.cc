@@ -87,7 +87,7 @@ int main(int argc, char** argv) {
 
   LOG(INFO) << "April Tag Target:";
   LOG(INFO) << "Dimension:     " << aprilgrid_config.num_tag_rows << "x"
-            << aprilgrid_config.num_tag_rows;
+            << aprilgrid_config.num_tag_cols;
   LOG(INFO) << "Tag size:      " << aprilgrid_config.tag_size_meter;
   LOG(INFO) << "Gap size:      " << aprilgrid_config.tag_inbetween_space_meter;
   LOG(INFO) << "Border pixels: " << aprilgrid_config.black_tag_border_bits;

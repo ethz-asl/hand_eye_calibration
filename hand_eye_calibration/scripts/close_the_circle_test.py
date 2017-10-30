@@ -10,15 +10,9 @@ import csv
 
 from hand_eye_calibration.dual_quaternion import DualQuaternion
 from hand_eye_calibration.extrinsic_calibration import ExtrinsicCalibration
-from hand_eye_calibration.bash_utils import run
+from hand_eye_calibration.bash_utils import (run, readArrayFromCsv)
 
 DRY_RUN = False
-
-
-def readArrayFromCsv(csv_file):
-  with open(csv_file, 'r') as csvfile:
-    csv_reader = csv.reader(csvfile, delimiter=',', quotechar='|')
-    return np.array(list(csv_reader), dtype=float)
 
 
 def getMTimes(inputs):

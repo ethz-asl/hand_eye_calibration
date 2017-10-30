@@ -34,3 +34,9 @@ def create_path(path):
     except OSError as exc:  # Guard against race condition
       if exc.errno != errno.EEXIST:
         raise
+
+
+def readArrayFromCsv(csv_file):
+  with open(csv_file, 'r') as csvfile:
+    csv_reader = csv.reader(csvfile, delimiter=',', quotechar='|')
+    return np.array(list(csv_reader), dtype=float)
