@@ -89,38 +89,68 @@ In our hand-eye calibration we use the following frames:
 
 All our tools can either be run via ROS, using
 
-```
+```bash
 rosrun hand_eye_calibration <tool>.py [arguments]
 ```
 
 or directly by changing into this directory (e.g. `~/catkin_ws/src/hand_eye_calibration/hand_eye_calibration`) and executing:
 
-```
+```bash
 ./bin/<tool>.py [arguments]
 ```
+
+### Step-by-Step Calibration
 
 A typical use case consists of the following steps (here using ROS):
 
 - Extract poses from tf (ROS transformation type) messages (with time stamps):
-  ```
+  ```bash
   rosrun hand_eye_calibration tf_to_csv.py --bag calibration.bag --tf_source_frame end_effector --tf_target_frame base_link --csv_output_file tf_poses_timestamped.csv
   ```
 - Extract poses from images (with time stamps):
-  ```
-  rosrun hand_eye_calibration target_extractor_interface.py --bag calibration.bag --calib_file_camera calib/camera_intrinsics.yaml --calib_file_target calib/target.yaml --image_topic /camera/rgb/image_raw --output_file camera_poses_timestamped.csv
+  ```bash
+  rosrun hand_eye_calibration target_extractor_interface.py \
+    --bag calibration.bag \
+    --calib_file_camera calib/camera_intrinsics.yaml \
+    --calib_file_target calib/target.yaml \
+    --image_topic /camera/rgb/image_raw \
+    --output_file camera_poses_timestamped.csv
   ```
 - Time alignment of the poses and interpolate the two sets at given time stamps:
-  ```
-  rosrun hand_eye_calibration compute_aligned_poses.py --poses_B_H_csv_file tf_poses_timestamped.csv --poses_W_E_csv_file camera_poses_timestamped.csv --aligned_poses_B_H_csv_file tf_aligned.csv --aligned_poses_W_E_csv_file camera_aligned.csv
+  ```bash
+  rosrun hand_eye_calibration compute_aligned_poses.py \
+    --poses_B_H_csv_file tf_poses_timestamped.csv \
+    --poses_W_E_csv_file camera_poses_timestamped.csv \ --aligned_poses_B_H_csv_file tf_aligned.csv \
+    --aligned_poses_W_E_csv_file camera_aligned.csv \
+    --time_offset_output_csv_file time_offset.csv
   ```
 - Perform the dual-quaternion-based hand-eye calibration:
-  ```
-  rosrun hand_eye_calibration compute_hand_eye_calibration.py --aligned_poses_B_H_csv_file tf_aligned.csv --aligned_poses_W_E_csv_file camera_aligned.csv --visualize True
+  ```bash
+  rosrun hand_eye_calibration compute_hand_eye_calibration.py \
+    --aligned_poses_B_H_csv_file tf_aligned.csv  \
+    --aligned_poses_W_E_csv_file camera_aligned.csv \
+    --time_offset_input_csv_file time_offset.csv \
+    --calibration_output_json_file calibration.json \
+    --visualize True
   ```
 - Run optimization to refine the calibration:
- ```
-  todo todo todo todo
+ ```bash
+  rosrun hand_eye_calibration_batch_estimation batch_estimator \
+    --v 1 \
+    --pose1_csv tf_poses_timestamped.csv \
+    --pose2_csv camera_poses_timestamped.csv \
+    --init_guess_file calibration.json \
+    --output_file calibration_optimized.json
   ```
+
+### End-to-End Calibration
+
+If you already have the CSV files ready as described above you can use the end-to-end calibration script as follows:
+
+```bash
+rosrun hand_eye_calibration compute_complete_handeye_calibration.sh \
+poses_B_H.csv poses_W_E.csv
+```
 
 ### Running the Tests
 
