@@ -58,3 +58,6 @@
 - git:
     local-name: hand_eye_calibration
     uri: 'git@github.com:ethz-asl/hand_eye_calibration.git'
+- git:
+    local-name: libnabo
+    uri: 'git@github.com:ethz-asl/libnabo.git'
