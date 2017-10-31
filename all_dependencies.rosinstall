@@ -38,9 +38,6 @@
     local-name: opencv3_catkin
     uri: 'git@github.com:ethz-asl/opencv3_catkin.git'
 - git:
-    local-name: ethzasl_brisk
-    uri: 'git@github.com:ethz-asl/ethzasl_brisk.git'
-- git:
     local-name: schweizer_messer
     uri: 'git@github.com:ethz-asl/schweizer_messer.git'
 - git:
