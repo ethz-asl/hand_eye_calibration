@@ -121,7 +121,8 @@ int main(int argc, char** argv) {
 
     // Convert image to cv::Mat.
     cv::Mat image;
-    if (image_message->encoding == "16UC1") {
+    if ((image_message->encoding == "16UC1") ||
+        (image_message->encoding == "mono16")) {
       sensor_msgs::Image img;
       img.header = image_message->header;
       img.height = image_message->height;
@@ -130,6 +131,17 @@ int main(int argc, char** argv) {
       img.step = image_message->step;
       img.data = image_message->data;
       img.encoding = "mono16";
+
+      // scale up the image to take use of the full 16bit range before encoding
+      // it to 8bit range
+      cv_bridge::CvImagePtr cv_ptr_tmp;
+      cv_ptr_tmp =
+          cv_bridge::toCvCopy(img, sensor_msgs::image_encodings::MONO16);
+      double min, max;
+      cv::minMaxLoc(cv_ptr_tmp->image, &min, &max);
+      double scaling_factor = 65535 / max;
+      cv_ptr_tmp->image = scaling_factor * cv_ptr_tmp->image;
+      cv_ptr_tmp->toImageMsg(img);
 
       cv_bridge::CvImageConstPtr cv_ptr;
       try {
