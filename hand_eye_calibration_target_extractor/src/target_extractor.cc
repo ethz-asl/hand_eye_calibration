@@ -132,15 +132,13 @@ int main(int argc, char** argv) {
       img.data = image_message->data;
       img.encoding = "mono16";
 
-      // scale up the image to take use of the full 16bit range before encoding
-      // it to 8bit range
+      // Scale up the image to take use of the full 16bit range before encoding
+      // it to 8bit range.
       cv_bridge::CvImagePtr cv_ptr_tmp;
       cv_ptr_tmp =
           cv_bridge::toCvCopy(img, sensor_msgs::image_encodings::MONO16);
-      double min, max;
-      cv::minMaxLoc(cv_ptr_tmp->image, &min, &max);
-      double scaling_factor = 65535 / max;
-      cv_ptr_tmp->image = scaling_factor * cv_ptr_tmp->image;
+      cv::normalize(cv_ptr_tmp->image, cv_ptr_tmp->image, 0,
+                    std::numeric_limits<uint16_t>::max(), cv::NORM_MINMAX);
       cv_ptr_tmp->toImageMsg(img);
 
       cv_bridge::CvImageConstPtr cv_ptr;
