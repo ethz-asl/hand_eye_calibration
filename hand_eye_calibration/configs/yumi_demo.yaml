@@ -1,0 +1,17 @@
+bags:
+  - 1:
+    name: yumi_calibration_bag.bag
+    bag_path: /Users/ffurrer/manor_catkin_ws/src/manor/
+    intrinsics_path: /home/ffurrer/hand_eye_ws/src/hand_eye_calibration/hand_eye_calibration/calib/
+    target_config_path: /home/ffurrer/hand_eye_ws/src/hand_eye_calibration/hand_eye_calibration/calib/
+    cameras:
+      cam_topics:
+        - /primesense/rgb/image_raw
+      cam_intrinsics:
+        - primesense_rgb.yaml
+    target: target_30_090.yaml
+    tf_frames:
+      source:
+        - primesense_rgb_optical_frame
+      target:
+        - yumi_body
