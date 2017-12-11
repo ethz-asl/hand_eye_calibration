@@ -38,11 +38,8 @@
     local-name: opencv3_catkin
     uri: 'git@github.com:ethz-asl/opencv3_catkin.git'
 - git:
-    local-name: ethzasl_brisk
-    uri: 'git@github.com:ethz-asl/ethzasl_brisk.git'
-- git:
-    local-name: Schweizer-Messer
-    uri: 'git@github.com:ethz-asl/Schweizer-Messer.git'
+    local-name: schweizer_messer
+    uri: 'git@github.com:ethz-asl/schweizer_messer.git'
 - git:
     local-name: aslam_optimizer
     uri: 'git@github.com:ethz-asl/aslam_optimizer.git'
@@ -58,3 +55,6 @@
 - git:
     local-name: hand_eye_calibration
     uri: 'git@github.com:ethz-asl/hand_eye_calibration.git'
+- git:
+    local-name: libnabo
+    uri: 'git@github.com:ethz-asl/libnabo.git'

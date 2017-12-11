@@ -5,14 +5,14 @@
 #include <gflags/gflags.h>
 #include <glog/logging.h>
 #include <Eigen/Core>
-#include <aslam/calibration/input/MotionCaptureSource.hpp>
-#include <aslam/calibration/calibrator/CalibratorI.hpp>
+#include <aslam/calibration/input/MotionCaptureSource.h>
+#include <aslam/calibration/calibrator/CalibratorI.h>
 #include <aslam/calibration/data/MeasurementsContainer.h>
 #include <aslam/calibration/data/PoseMeasurement.h>
 #include <aslam/calibration/model/FrameGraphModel.h>
 #include <aslam/calibration/model/PoseTrajectory.h>
-#include <aslam/calibration/model/sensors/PoseSensor.hpp>
-#include <aslam/calibration/model/sensors/PositionSensor.hpp>
+#include <aslam/calibration/model/sensors/PoseSensor.h>
+#include <aslam/calibration/model/sensors/PositionSensor.h>
 #include <ros/package.h>
 #include <sm/boost/null_deleter.hpp>
 #include <sm/BoostPropertyTree.hpp>
@@ -127,7 +127,6 @@ void writePosesToCsv(const std::string & path, aslam::calibration::CalibratorI &
 }
 
 ValueStoreRef loadConfigFile() {
-  //TODO find a solution for configuration files in installed packages. Maybe this works already?
   std::string config_file = FLAGS_config_file;
   const auto marker_pos = config_file.find(PACKAGE_PATH_MARKER);
   if (marker_pos != std::string::npos) {
