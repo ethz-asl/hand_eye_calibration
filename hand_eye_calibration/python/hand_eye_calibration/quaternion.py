@@ -178,13 +178,13 @@ class Quaternion(object):
     """ Rotate a vector by the quaternion. """
     vector_rotated = np.zeros(3)
     vector_rotated[0] = ((1 - 2 * self.y**2 - 2 * self.z**2) * vector[0] +
-                         2 * (self.x * self.y + self.w * self.z) * vector[1] +
-                         2 * (self.x * self.z - self.w * self.y) * vector[2])
-    vector_rotated[1] = (2 * (self.x * self.y - self.w * self.z) * vector[0] +
+                         2 * (self.x * self.y - self.z * self.w) * vector[1] +
+                         2 * (self.x * self.z + self.y * self.w) * vector[2])
+    vector_rotated[1] = (2 * (self.x * self.y + self.z * self.w) * vector[0] +
                          (1 - 2 * self.x**2 - 2 * self.z**2) * vector[1] +
-                         2 * (self.y * self.z + self.w * self.x) * vector[2])
-    vector_rotated[2] = (2 * (self.x * self.z + self.w * self.y) * vector[0] +
-                         2 * (self.y * self.z - self.w * self.x) * vector[1] +
+                         2 * (self.y * self.z - self.x * self.w) * vector[2])
+    vector_rotated[2] = (2 * (self.x * self.z - self.y * self.w) * vector[0] + 
+                         2 * (self.y * self.z + self.x * self.w) * vector[1] +
                          (1 - 2 * self.x**2 - 2 * self.y**2) * vector[2])
     return vector_rotated.copy()
 
