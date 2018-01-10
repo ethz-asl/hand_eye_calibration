@@ -1,7 +1,7 @@
 bags:
   - 1:
-    name: depth_gun_vicon.bag
-    bag_path: /media/mobmi/HDD/hand_eye_calibration_datasets/
+    name: he.bag
+    bag_path: /media/mobmi/HDD/vicon_depth_gun/ # /media/mobmi/HDD/hand_eye_calibration_datasets/
     intrinsics_path: /home/mobmi/catkin_ws/src/hand_eye_calibration/hand_eye_calibration/calib/
     target_config_path: /home/mobmi/catkin_ws/src/hand_eye_calibration/hand_eye_calibration/calib/
     cameras:
@@ -13,7 +13,7 @@ bags:
     tf_frames:
       source:
         - depth_gun
-        - imu
+        # - imu
       target:
         - vicon
-        - map
+      #  - map
