@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 import unittest
 
+import math
 import numpy as np
 import numpy.testing as npt
 
@@ -129,14 +130,24 @@ class DualQuaternionOperations(unittest.TestCase):
     self.assertEqual(dq_1, dq_2)
 
   def test_conversions(self):
-    pose = [1, 2, 3, 1., 0., 0., 0.]
-    dq = DualQuaternion.from_pose_vector(pose)
-    pose_out = dq.to_pose()
-    matrix_out = dq.to_matrix()
-    matrix_expected = np.array(
-        [[1, 0, 0, 1], [0, -1, 0, 2], [0, 0, -1, 3], [0, 0, 0, 1]])
-    npt.assert_allclose(pose, pose_out)
-    npt.assert_allclose(matrix_out, matrix_expected)
+    poses = [[1, 2, 3, 1.0, 0., 0., 0.],
+             [1, -2, -3, -0.5 * math.sqrt(2), 0., 0., -0.5 * math.sqrt(2)]]
+    expected_matrices = [
+        np.array([[1, 0, 0, 1], [0, -1, 0, 2], [0, 0, -1, 3], [0, 0, 0, 1]]),
+        np.array([[1, 0, 0, 1], [0, 0, -1, -2], [0, 1, 0, -3], [0, 0, 0, 1]])
+    ]
+    for idx in range(len(poses)):
+      pose = poses[idx]
+      matrix_expected = expected_matrices[idx]
+      dq = DualQuaternion.from_pose_vector(pose)
+      pose_out = dq.to_pose()
+      matrix_out = dq.to_matrix()
+      np.set_printoptions(suppress=True)
+      npt.assert_allclose(pose[0:3], pose_out[0:3])
+      # Check both quaternions which describe the same rotation.
+      if not np.allclose(pose[3:7], pose_out[3:7]):
+        npt.assert_allclose(pose[3:7], -pose_out[3:7])
+      npt.assert_allclose(matrix_out, matrix_expected, atol=1e-6)
 
   def test_consecutive_transformations(self):
     dq_1_2 = DualQuaternion.from_pose(0, 10, 1, 1, 0, 0, 0)
