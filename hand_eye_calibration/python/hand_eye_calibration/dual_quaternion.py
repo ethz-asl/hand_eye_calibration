@@ -274,7 +274,7 @@ class DualQuaternion(object):
     q_rot = self.q_rot
     if (q_rot.w < 0.):
       q_rot = -q_rot
-    translation = (2.0 * self.q_dual) * q_rot.conjugate()
+    translation = (2.0 * self.q_dual) * self.q_rot.conjugate()
 
     pose[0:3] = translation.q[0:3].copy()
     pose[3:7] = q_rot.q.copy()
