@@ -39,7 +39,7 @@ class TimeAlignment(unittest.TestCase):
 
   # To generate varying angular velocities, we assign new random times
   # between the different quaternions.
-  quat_interpolate_times = np.random.rand(n_samples)
+  quat_interpolate_times = np.random.rand(int(n_samples))
   quat_interpolate_times.sort()
   quat_interpolate_times2 = (
       quat_interpolate_times *
