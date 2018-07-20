@@ -138,13 +138,14 @@ class Quaternion(object):
     The output format is np.array([x, y, z, angle]).
     """
     # If there is no rotation return rotation about x-axis with zero angle.
-    if np.isclose(self.w, 1., atol=1.e-12):
+    w_squared = self.w * self.w
+    if np.isclose(w_squared, 1., atol=1.e-12):
       return(np.array([1., 0., 0., 0.]))
 
     angle = 2. * np.arccos(self.w)
-    x = self.x / np.sqrt(1. - self.w * self.w)
-    y = self.y / np.sqrt(1. - self.w * self.w)
-    z = self.z / np.sqrt(1. - self.w * self.w)
+    x = self.x / np.sqrt(1. - w_squared)
+    y = self.y / np.sqrt(1. - w_squared)
+    z = self.z / np.sqrt(1. - w_squared)
     return np.array([x, y, z, angle])
 
   def copy(self):
