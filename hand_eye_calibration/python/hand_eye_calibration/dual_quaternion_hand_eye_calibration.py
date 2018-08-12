@@ -946,7 +946,7 @@ def compute_hand_eye_calibration_RANSAC(dq_B_H_vec, dq_W_E_vec, config):
         "\t\tdq_H_E_refined:    {}\n"
         "\t\tpose_H_E_refined:  {}\n"
         "\t\tTranslation norm:  {:10.4f}".format(
-            sample_indices, best_num_inliers, best_rmse_position,
+            best_inlier_idx_set, best_num_inliers, best_rmse_position,
             best_rmse_orientation, best_estimated_dq_H_E,
             pose_vec, np.linalg.norm(pose_vec[0:3])))
 
