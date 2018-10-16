@@ -215,11 +215,32 @@ def interpolate_poses_from_samples(time_stamped_poses, samples):
 
   return aligned_poses.copy()
 
+def interpolate_covariances_from_samples(estimators_covariance, samples):
+  """
+  Interpolate time stamped 6DoF covariances provided in samples.
+  Each [6x6] matrix is stored as a [1x36] row vector.
+
+  We apply linear interpolation to each entry separately.
+  """
+
+  num_poses = samples.shape[0]
+  aligned_covariance = np.zeros((num_poses, estimators_covariance.shape[1]))
+  aligned_covariance[:, 0] = samples[:]
+
+  for i in range(36):
+    aligned_covariance[:, i] = np.interp(
+      samples,
+      np.asarray(estimators_covariance[:, 0]).ravel(),
+      np.asarray(estimators_covariance[:, i]).ravel())
+  
+  return aligned_covariance.copy()
+
 
 def compute_aligned_poses(time_stamped_poses_A,
                           time_stamped_poses_B,
                           time_offset,
-                          plot=False):
+                          plot=False,
+                          covariances_B=None):
   """
   time_stamped_poses should have the following format:
     [timestamp [s], x [m], y [m], z [m], qx, qy, qz, qw]
@@ -288,6 +309,11 @@ def compute_aligned_poses(time_stamped_poses_A,
                                                    samples)
   aligned_poses_B = interpolate_poses_from_samples(time_stamped_poses_B,
                                                    samples)
+
+  if not covariances_B is None:
+    aligned_covariance_B = interpolate_covariances_from_samples(covariances_B,
+                                                   samples)
+
   assert aligned_poses_A.shape == aligned_poses_B.shape
   assert np.allclose(aligned_poses_A[:, 0], aligned_poses_B[:, 0], atol=1e-8)
   print("Found {} matching poses.".format(aligned_poses_A.shape[0]))
@@ -296,4 +322,7 @@ def compute_aligned_poses(time_stamped_poses_A,
     plot_time_stamped_poses("Time Aligned Aligned Poses", aligned_poses_A,
                             aligned_poses_B)
 
-  return (aligned_poses_A, aligned_poses_B)
+  if covariances_B is None:
+    return (aligned_poses_A, aligned_poses_B)
+  else:
+    return (aligned_poses_A, aligned_poses_B, aligned_covariance_B)
