@@ -152,8 +152,12 @@ int main(int argc, char** argv) {
     } else {
       cv_bridge::CvImageConstPtr cv_ptr;
       try {
-        cv_ptr = cv_bridge::toCvShare(image_message,
-                                      sensor_msgs::image_encodings::MONO8);
+        if(image_message->encoding == "8UC1"){
+          cv_ptr = cv_bridge::toCvShare(image_message);
+        }
+        else{
+          cv_ptr = cv_bridge::toCvShare(image_message, sensor_msgs::image_encodings::MONO8);
+        }
       } catch (const cv_bridge::Exception& e) {
         LOG(FATAL) << "cv_bridge exception: " << e.what();
       }
