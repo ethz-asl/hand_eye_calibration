@@ -116,9 +116,7 @@ int main(int argc, char** argv) {
     sensor_msgs::ImageConstPtr image_message =
         message.instantiate<sensor_msgs::Image>();
     LOG_IF(FATAL, !image_message) << "Can only process image messages.";
-
     timestamps.push_back(image_message->header.stamp.toSec());
-
     // Convert image to cv::Mat.
     cv::Mat image;
     if ((image_message->encoding == "16UC1") ||
@@ -131,7 +129,6 @@ int main(int argc, char** argv) {
       img.step = image_message->step;
       img.data = image_message->data;
       img.encoding = "mono16";
-
       // Scale up the image to take use of the full 16bit range before encoding
       // it to 8bit range.
       cv_bridge::CvImagePtr cv_ptr_tmp;
@@ -152,8 +149,12 @@ int main(int argc, char** argv) {
     } else {
       cv_bridge::CvImageConstPtr cv_ptr;
       try {
-        cv_ptr = cv_bridge::toCvShare(image_message,
-                                      sensor_msgs::image_encodings::MONO8);
+        if(image_message->encoding == "8UC1"){
+          cv_ptr = cv_bridge::toCvShare(image_message);
+        }
+        else{
+          cv_ptr = cv_bridge::toCvShare(image_message, sensor_msgs::image_encodings::MONO8);
+        }
       } catch (const cv_bridge::Exception& e) {
         LOG(FATAL) << "cv_bridge exception: " << e.what();
       }
