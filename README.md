@@ -6,7 +6,8 @@ Python tools to perform hand-eye calibration.
 
 If you are using these tools, please cite our [paper](http://www.fsr.ethz.ch/papers/FSR_2017_paper_73.pdf):
 
-> @Inbook{Furrer2017FSR,
+```bibtex
+@Inbook{Furrer2017FSR,
 author="Furrer, Fadri
 and Fehr, Marius
 and Novkovic, Tonci
@@ -22,6 +23,7 @@ publisher="Springer International Publishing",
 address="Cham",
 isbn="978-3-319-67361-5"
 }
+```
 
 It includes time alignment of sets of poses, the implementation of a dual-quaternion based approach to solve the hand eye calibration, pre-filtering and filtering of poses, as well as the integration of a pose refinement step using batch optimization from [oomact](https://github.com/ethz-asl/oomact).
 
