@@ -37,7 +37,7 @@ The datasets where these algorithms are evaluated on can be found [here](http://
 
 ```bash
 # Install ROS repository
-sudo apt-get install software-properties-common
+sudo apt-get install software-properties-common libv4l-dev
 sudo add-apt-repository "deb http://packages.ros.org/ros/ubuntu xenial main"
 wget https://raw.githubusercontent.com/ros/rosdistro/master/ros.key -O - | sudo apt-key add -
 sudo apt-get update
