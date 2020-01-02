@@ -1,9 +1,12 @@
 # Plotting tools for time alignment.
-
+import matplotlib
+import os
+if os.environ.get('DISPLAY','') == '':
+  print('No display found. Using non-interactive Agg backend.')
+  matplotlib.use('Agg')
 from matplotlib import pylab as plt
 from matplotlib.font_manager import FontProperties
 import numpy as np
-import matplotlib
 
 font = FontProperties()
 font.set_size('small')

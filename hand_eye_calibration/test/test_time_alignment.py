@@ -12,7 +12,14 @@ from scipy import signal
 import numpy as np
 import numpy.testing as npt
 import math
+
+import matplotlib as mpl
+import os
+if os.environ.get('DISPLAY', '') == '':
+  print('No display found. Using non-interactive Agg backend.')
+  mpl.use('Agg')
 import matplotlib.pyplot as plt
+
 import copy
 
 
