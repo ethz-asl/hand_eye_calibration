@@ -1,4 +1,11 @@
 #!/usr/bin/env python
+import matplotlib
+import os
+if os.environ.get('DISPLAY','') == '':
+  print('No display found. Using non-interactive Agg backend.')
+  matplotlib.use('Agg')
+import matplotlib.pyplot as plt
+
 import unittest
 
 import numpy as np
