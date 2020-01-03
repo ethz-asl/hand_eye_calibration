@@ -1,8 +1,8 @@
-import matplotlib as mpl
+import matplotlib
 import os
 if os.environ.get('DISPLAY','') == '':
   print('No display found. Using non-interactive Agg backend.')
-  mpl.use('Agg')
+  matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 from matplotlib.patches import FancyArrowPatch
 from mpl_toolkits.mplot3d import (proj3d, Axes3D)
