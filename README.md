@@ -65,6 +65,11 @@ wstool init
 wstool merge hand_eye_calibration/all_dependencies.rosinstall
 wstool update -j 8
 
+# Ignore packages depending on brisk
+touch aslam_cv2/aslam_cv_tracker/CATKIN_IGNORE
+touch aslam_cv2/aslam_cv_detector/CATKIN_IGNORE
+touch aslam_cv2/aslam_cv_pipeline/CATKIN_IGNORE
+
 # Build hand_eye_calibration_package
 catkin build hand_eye_calibration hand_eye_calibration_target_extractor hand_eye_calibration_batch_estimation
 ```
