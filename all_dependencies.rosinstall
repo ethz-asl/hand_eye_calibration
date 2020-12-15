@@ -1,63 +1,60 @@
 - git:
     local-name: catkin_simple
-    uri: 'git@github.com:catkin/catkin_simple.git'
+    uri: 'https://github.com/catkin/catkin_simple.git'
 - git:
     local-name: gflags_catkin
-    uri: 'git@github.com:ethz-asl/gflags_catkin.git'
+    uri: 'https://github.com/ethz-asl/gflags_catkin.git'
 - git:
     local-name: glog_catkin
-    uri: 'git@github.com:ethz-asl/glog_catkin.git'
+    uri: 'https://github.com/ethz-asl/glog_catkin.git'
 - git:
     local-name: oomact
-    uri: 'git@github.com:ethz-asl/oomact.git'
+    uri: 'https://github.com/ethz-asl/oomact.git'
 - git:
     local-name: aslam_cv2
-    uri: 'git@github.com:ethz-asl/aslam_cv2.git'
+    uri: 'https://github.com/ethz-asl/aslam_cv2.git'
 - git:
     local-name: eigen_catkin
-    uri: 'git@github.com:ethz-asl/eigen_catkin.git'
+    uri: 'https://github.com/ethz-asl/eigen_catkin.git'
 - git:
     local-name: eigen_checks
-    uri: 'git@github.com:ethz-asl/eigen_checks.git'
+    uri: 'https://github.com/ethz-asl/eigen_checks.git'
 - git:
     local-name: doxygen_catkin
-    uri: 'git@github.com:ethz-asl/doxygen_catkin.git'
+    uri: 'https://github.com/ethz-asl/doxygen_catkin.git'
 - git:
     local-name: minkindr
-    uri: 'git@github.com:ethz-asl/minkindr.git'
+    uri: 'https://github.com/ethz-asl/minkindr.git'
 - git:
     local-name: asl_cmake_modules
-    uri: 'git@github.com:ethz-asl/asl_cmake_modules.git'
+    uri: 'https://github.com/ethz-asl/asl_cmake_modules.git'
 - git:
     local-name: yaml_cpp_catkin
-    uri: 'git@github.com:ethz-asl/yaml_cpp_catkin.git'
+    uri: 'https://github.com/ethz-asl/yaml_cpp_catkin.git'
 - git:
     local-name: ethzasl_apriltag2
-    uri: 'git@github.com:ethz-asl/ethzasl_apriltag2.git'
+    uri: 'https://github.com/ethz-asl/ethzasl_apriltag2.git'
 - git:
     local-name: opencv3_catkin
-    uri: 'git@github.com:ethz-asl/opencv3_catkin.git'
+    uri: 'https://github.com/ethz-asl/opencv3_catkin.git'
 - git:
     local-name: schweizer_messer
-    uri: 'git@github.com:ethz-asl/schweizer_messer.git'
+    uri: 'https://github.com/ethz-asl/schweizer_messer.git'
 - git:
     local-name: aslam_optimizer
-    uri: 'git@github.com:ethz-asl/aslam_optimizer.git'
+    uri: 'https://github.com/ethz-asl/aslam_optimizer.git'
 - git:
     local-name: aslam_splines
-    uri: 'git@github.com:ethz-asl/aslam_splines.git'
+    uri: 'https://github.com/ethz-asl/aslam_splines.git'
 - git:
     local-name: suitesparse
-    uri: 'git@github.com:ethz-asl/suitesparse.git'
+    uri: 'https://github.com/ethz-asl/suitesparse.git'
 - git:
     local-name: opengv
-    uri: 'git@github.com:ethz-asl/opengv.git'
+    uri: 'https://github.com/ethz-asl/opengv.git'
 - git:
     local-name: hand_eye_calibration
-    uri: 'git@github.com:ethz-asl/hand_eye_calibration.git'
+    uri: 'https://github.com/ethz-asl/hand_eye_calibration.git'
 - git:
     local-name: libnabo
-    uri: 'git@github.com:ethz-asl/libnabo.git'
-- git:
-    local-name: protobuf_catkin
-    uri: 'git@github.com:ethz-asl/protobuf_catkin.git'
+    uri: 'https://github.com/ethz-asl/libnabo.git'
