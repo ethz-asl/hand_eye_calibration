@@ -232,8 +232,8 @@ int main(int argc, char** argv) {
       }
     }
 
-    aslam::Camera::ConstPtr camera =
-        aslam::Camera::loadFromYaml(FLAGS_eval_camera_yaml);
+    aslam::Camera::Ptr camera;
+    camera->deserializeFromFile(FLAGS_eval_camera_yaml);
     CHECK(camera);
 
     constexpr bool kRunNonlinearRefinement = true;
