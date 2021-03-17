@@ -3,7 +3,7 @@ from numbers import Number
 import numpy as np
 import numpy.testing as npt
 
-from quaternion import Quaternion
+from hand_eye_calibration.quaternion import Quaternion
 
 
 class DualQuaternion(object):
