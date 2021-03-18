@@ -58,3 +58,6 @@
 - git:
     local-name: libnabo
     uri: 'https://github.com/ethz-asl/libnabo.git'
+- git:
+    local-name: protobuf_catkin
+    uri: 'https://github.com/ethz-asl/protobuf_catkin.git'
