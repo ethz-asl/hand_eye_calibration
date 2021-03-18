@@ -8,6 +8,9 @@
     local-name: aslam_cv2 # TODO get rid of aslam_cv2 as dependency ?
     uri: git@github.com:ethz-asl/aslam_cv2
 - git:
+    local-name: protobuf_catkin
+    uri: git@github.com:ethz-asl/protobuf_catkin.git
+- git:
     local-name: eigen_catkin
     uri: https://github.com/ethz-asl/eigen_catkin.git
 - git:
