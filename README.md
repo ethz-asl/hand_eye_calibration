@@ -60,7 +60,7 @@ catkin config --cmake-args -DCMAKE_BUILD_TYPE=Release
 
 # Clone the repositories and its dependencies.
 cd src
-git clone git@github.com:ethz-asl/hand_eye_calibration.git
+git clone https://github.com/ethz-asl/hand_eye_calibration.git
 wstool init
 wstool merge hand_eye_calibration/all_dependencies.rosinstall
 wstool update -j 8
