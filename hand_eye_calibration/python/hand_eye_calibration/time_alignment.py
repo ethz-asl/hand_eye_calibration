@@ -241,13 +241,13 @@ def compute_aligned_poses(time_stamped_poses_A,
   dt_A = np.mean(np.diff(time_stamped_poses_A_shifted[:, 0]))
   dt_B = np.mean(np.diff(time_stamped_poses_B[:, 0]))
   if dt_A >= dt_B:
-    dt = dt_A
-    timestamps_low = time_stamped_poses_A_shifted[:, 0].T
-    timestamps_high = time_stamped_poses_B[:, 0].T
-  else:
     dt = dt_B
     timestamps_low = time_stamped_poses_B[:, 0].T
     timestamps_high = time_stamped_poses_A_shifted[:, 0].T
+  else:
+    dt = dt_A
+    timestamps_low = time_stamped_poses_A_shifted[:, 0].T
+    timestamps_high = time_stamped_poses_B[:, 0].T
 
   # Create samples at time stamps from lower frequency signal, check if there
   # are timely close samples available from the other signal.
