@@ -215,6 +215,8 @@ def interpolate_poses_from_samples(time_stamped_poses, samples):
 
   return aligned_poses.copy()
 
+def _filter_max_value(array, max_val):
+    return array[np.where(np.abs(array) < max_val)]
 
 def compute_aligned_poses(time_stamped_poses_A,
                           time_stamped_poses_B,
@@ -238,16 +240,17 @@ def compute_aligned_poses(time_stamped_poses_A,
   interval = end_time - start_time
 
   # Resample at the lower frequency to prevent introducing more noise.
-  dt_A = np.mean(np.diff(time_stamped_poses_A_shifted[:, 0]))
-  dt_B = np.mean(np.diff(time_stamped_poses_B[:, 0]))
+  max_diff_s = 1.
+  dt_A = np.mean(_filter_max_value(np.diff(time_stamped_poses_A_shifted[:, 0]), max_diff_s))
+  dt_B = np.mean(_filter_max_value(np.diff(time_stamped_poses_B[:, 0]), max_diff_s))
   if dt_A >= dt_B:
-    dt = dt_B
-    timestamps_low = time_stamped_poses_B[:, 0].T
-    timestamps_high = time_stamped_poses_A_shifted[:, 0].T
-  else:
     dt = dt_A
     timestamps_low = time_stamped_poses_A_shifted[:, 0].T
     timestamps_high = time_stamped_poses_B[:, 0].T
+  else:
+    dt = dt_B
+    timestamps_low = time_stamped_poses_B[:, 0].T
+    timestamps_high = time_stamped_poses_A_shifted[:, 0].T
 
   # Create samples at time stamps from lower frequency signal, check if there
   # are timely close samples available from the other signal.
