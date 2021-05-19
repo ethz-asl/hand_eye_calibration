@@ -238,8 +238,10 @@ def compute_aligned_poses(time_stamped_poses_A,
   interval = end_time - start_time
 
   # Resample at the lower frequency to prevent introducing more noise.
-  dt_A = np.mean(np.diff(time_stamped_poses_A_shifted[:, 0]))
-  dt_B = np.mean(np.diff(time_stamped_poses_B[:, 0]))
+  # The median is supposed to be robust against cases where few, large gaps
+  # exist in either of the signals.
+  dt_A = np.median(np.diff(time_stamped_poses_A_shifted[:, 0]))
+  dt_B = np.median(np.diff(time_stamped_poses_B[:, 0]))
   if dt_A >= dt_B:
     dt = dt_A
     timestamps_low = time_stamped_poses_A_shifted[:, 0].T
