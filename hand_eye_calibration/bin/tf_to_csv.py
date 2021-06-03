@@ -66,7 +66,7 @@ def write_transformation_to_csv_file(bag_file, target_frame, source_frame,
           # Write to csv file.
           quaternion = np.array(hamilton_quaternion)
           csv_file.write(
-              str(single_tf.header.stamp.to_sec()) + ', ' +
+              str("{:.9f}".format(single_tf.header.stamp.to_sec())) + ', ' +
               str(translation[0]) + ', ' + str(translation[1]) + ', ' +
               str(translation[2]) + ', ' + str(quaternion[0]) + ', ' +
               str(quaternion[1]) + ', ' + str(quaternion[2]) + ', ' +
