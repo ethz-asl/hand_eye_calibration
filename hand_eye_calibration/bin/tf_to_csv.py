@@ -6,11 +6,26 @@ import time
 
 import numpy as np
 
+import geometry_msgs
 import rosbag
 import rospy
 import tf
 from tf2_msgs.msg import TFMessage
 import warnings
+
+
+def bag_type_to_geometry_msgs(msg_tf):
+    casted_msg = geometry_msgs.msg.TransformStamped()
+    casted_msg.header = msg_tf.header
+    casted_msg.child_frame_id = msg_tf.child_frame_id
+    casted_msg.transform.translation.x = msg_tf.transform.translation.x
+    casted_msg.transform.translation.y = msg_tf.transform.translation.y
+    casted_msg.transform.translation.z = msg_tf.transform.translation.z
+    casted_msg.transform.rotation.x = msg_tf.transform.rotation.x
+    casted_msg.transform.rotation.y = msg_tf.transform.rotation.y
+    casted_msg.transform.rotation.z = msg_tf.transform.rotation.z
+    casted_msg.transform.rotation.w = msg_tf.transform.rotation.w
+    return casted_msg
 
 
 def write_transformation_to_csv_file(bag_file, target_frame, source_frame,
@@ -21,7 +36,8 @@ def write_transformation_to_csv_file(bag_file, target_frame, source_frame,
 
   for topic, msg, t in bag.read_messages(topics=['/tf']):
     for msg_tf in msg.transforms:
-      tf_tree.setTransform(msg_tf)
+      casted_msg = bag_type_to_geometry_msgs(msg_tf)
+      tf_tree.setTransform(casted_msg)
   bag.close()
 
   print("Listening to tf transformation from ", source_frame, " to ",
@@ -66,7 +82,7 @@ def write_transformation_to_csv_file(bag_file, target_frame, source_frame,
           # Write to csv file.
           quaternion = np.array(hamilton_quaternion)
           csv_file.write(
-              str(single_tf.header.stamp.to_sec()) + ', ' +
+              str("{:.9f}".format(single_tf.header.stamp.to_nsec()/1000000000.0)) + ', ' +
               str(translation[0]) + ', ' + str(translation[1]) + ', ' +
               str(translation[2]) + ', ' + str(quaternion[0]) + ', ' +
               str(quaternion[1]) + ', ' + str(quaternion[2]) + ', ' +
