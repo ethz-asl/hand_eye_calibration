@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 from hand_eye_calibration.time_alignment import (
     calculate_time_offset, compute_aligned_poses, FilteringConfig)
 from hand_eye_calibration.quaternion import Quaternion

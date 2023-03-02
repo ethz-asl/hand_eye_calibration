@@ -95,7 +95,7 @@ def resample_quaternions(times, quaternions, dt):
   Uses SLERP for quaternion interpolation.
   """
   interval = times[-1] - times[0]
-  samples = np.linspace(times[0], times[-1], interval / dt + 1)
+  samples = np.linspace(times[0], times[-1], int(interval / dt + 1))
   return (resample_quaternions_from_samples(times, quaternions, samples),
           samples)
 

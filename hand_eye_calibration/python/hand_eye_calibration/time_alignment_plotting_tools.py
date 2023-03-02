@@ -30,7 +30,6 @@ def plot_results(times_A, times_B, signal_A, signal_B,
   plt.xlabel('time [s]')
   a1.set_title(
       "Before Time Alignment", y=title_position)
-  plt.hold("on")
 
   min_time = min(np.amin(times_A), np.amin(times_B))
   times_A_zeroed = times_A - min_time
@@ -48,7 +47,6 @@ def plot_results(times_A, times_B, signal_A, signal_B,
   a3.set_title(
       "Correlation Result \n[Ideally has a single dominant peak.]",
       y=title_position)
-  plt.hold("on")
   plt.plot(np.arange(-len(signal_A) + 1, len(signal_B)), convoluted_signals)
 
   a2 = plt.subplot(1, 3, 3)
@@ -57,7 +55,6 @@ def plot_results(times_A, times_B, signal_A, signal_B,
   plt.xlabel('time [s]')
   a2.set_title(
       "After Time Alignment", y=title_position)
-  plt.hold("on")
   min_time = min(np.amin(times_A_shifted), np.amin(times_B))
   times_A_shifted_zeroed = times_A_shifted - min_time
   times_B_zeroed = times_B - min_time
